@@ -24,13 +24,43 @@
 
 # include "type_def.h"
 
-typedef u16 slp_t;			// sleep mask
+typedef u16 slp_t;					// sleep mask
 
-extern void SLP_init(void);		// setup for SLEEP system
+extern void SLP_init(void);			// setup for SLEEP system
 
 extern slp_t SLP_register(void);	// return the sleep mask for the registering client
 
 extern u8 SLP_request(slp_t mask);	// a registered client can request to sleep
 					// the function returns OK if sleep has happened, KO else
+
+extern void SLP_unrequest(slp_t mask);	// a registered client can unrequest to sleep
+
+
+# ifdef __PT_H__
+#  define PT_SLEEP_WAIT_UNTIL(pt, slp, condition)	\
+	do {											\
+		LC_SET((pt)->lc);							\
+		(void)SLP_request(slp);						\
+		if(!(condition)) {							\
+			return PT_WAITING;						\
+		}											\
+		SLP_unrequest(slp);							\
+	} while(0)
+
+#  define PT_SLEEP_WAIT_WHILE(pt, slp, condition)	\
+		PT_SLEEP_WAIT_UNTIL((pt), (slp), !(condition))
+
+#  define PT_SLEEP_YIELD(pt, slp)					\
+	do {											\
+		PT_YIELD_FLAG = 0;							\
+		LC_SET((pt)->lc);							\
+		(void)SLP_request(slp);						\
+		if(PT_YIELD_FLAG == 0) {					\
+			return PT_YIELDED;						\
+		}											\
+		SLP_unrequest(slp);							\
+	} while(0)
+
+# endif	// __PT_H__
 
 #endif

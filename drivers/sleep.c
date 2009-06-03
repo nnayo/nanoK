@@ -21,7 +21,7 @@
 
 #include "drivers/sleep.h"
 
-#include <avr/io.h>		// UBRRH, UBBRL, UCSR?
+#include <avr/io.h>			// UBRRH, UBBRL, UCSR?
 #include <avr/interrupt.h>	// ISR()
 
 
@@ -38,6 +38,9 @@ static struct {
 
 	// bit value for the next registering client
 	u8 mask_bit;
+
+	// number of times the sleep mode is reached
+	u16 stat;
 } SLP;
 
 
@@ -57,6 +60,10 @@ void SLP_init(void)
 	SLP.register_mask = 0;
 	SLP.current_mask = 0;
 	SLP.mask_bit = 0;
+	SLP.stat = 0;
+
+	// enable idle sleep mode 
+	MCUCR |= _BV(SE);
 }
 
 
@@ -90,8 +97,8 @@ u8 SLP_request(slp_t mask)
 		// sleep
 		__asm__ __volatile__ ("sleep");
 
-		// on wake-up, clear mask
-		SLP.current_mask = 0;
+		// on wake-up, update stats
+		SLP.stat++;
 
 		// and return OK
 		return OK;
@@ -99,4 +106,12 @@ u8 SLP_request(slp_t mask)
 
 	// else return KO
 	return KO;
+}
+
+
+// a registered client can unrequest to sleep
+void SLP_unrequest(slp_t mask)
+{
+	// remove client mask from the global mask
+	SLP.current_mask &= ~mask;
 }
