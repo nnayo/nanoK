@@ -36,9 +36,9 @@
 # include "type_def.h"
 
 
-# define TIME_1_MSEC	( (u32)10 )			// one milli-second
-# define TIME_1_SEC	( (u32)(1000 * TIME_1_MSEC) )	// one second
-# define TIME_MAX	( (u32)0xffffffff )		// max time value (11.93 hours)
+# define TIME_1_MSEC	( (u32)10 )						// one milli-second
+# define TIME_1_SEC		( (u32)(1000 * TIME_1_MSEC) )	// one second
+# define TIME_MAX		( (u32)0xffffffff )				// max time value (11.93 hours)
 
 // init the internals of TIME
 // and may provide a function to have a better
