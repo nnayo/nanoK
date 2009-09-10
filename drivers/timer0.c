@@ -29,7 +29,7 @@
 // private variables
 //
 
-static struct {
+static volatile struct {
 	u8 config;
 	void (*call_back)(void* misc);
 	void* misc;
@@ -67,11 +67,11 @@ ISR(TIMER0_COMP_vect)
 
 void TMR0_init(tmr0_int_mode_t mode, u8 config, u8 compare, void (*call_back)(void* misc), void* misc)
 {
-	// save configuration
-	TMR0.config = config;
-
 	// stop counter
 	TCCR0 = TMR0_STOP;
+
+	// save configuration
+	TMR0.config = config;
 
 	// reset counter
 	TCNT0 = 0x00;
@@ -79,18 +79,25 @@ void TMR0_init(tmr0_int_mode_t mode, u8 config, u8 compare, void (*call_back)(vo
 	// Output Compare Register can be set immediatly
 	OCR0 = compare;
 
+	// reset any pending interrupt
+	TIMSK |= _BV(OCF0);
+	TIMSK |= _BV(TOV0);
+
 	// set interrupt mode
 	switch (mode) {
 		case TMR0_WITHOUT_INTERRUPT:
 		default:
-			TIMSK &= ~( _BV(OCIE0) | _BV(TOIE0) );
+			TIMSK &= ~_BV(OCIE0);
+			TIMSK &= ~_BV(TOIE0);
 			break;
 
 		case TMR0_WITH_OVERFLOW_INT:
+			TIMSK &= ~_BV(OCIE0);
 			TIMSK |= _BV(TOIE0);
 			break;
 
 		case TMR0_WITH_COMPARE_INT:
+			TIMSK &= ~_BV(TOIE0);
 			TIMSK |= _BV(OCIE0);
 			break;
 	}

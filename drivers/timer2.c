@@ -66,11 +66,11 @@ ISR(TIMER2_COMP_vect)
 
 void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t wgm, u8 compare, void (*call_back)(void* misc), void* misc)
 {
-	// save configuration
-	TMR2.prescaler = prescaler | wgm;
-
 	// stop counter
 	TCCR2 = TMR2_STOP;
+
+	// save configuration
+	TMR2.prescaler = prescaler | wgm;
 
 	// reset counter
 	TCNT2 = 0x00;
@@ -78,18 +78,25 @@ void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t 
 	// Output Compare Register can be set immediatly
 	OCR2 = compare;
 
+	// reset any pending interrupt
+	TIMSK |= _BV(OCF2);
+	TIMSK |= _BV(TOV2);
+
 	// set interrupt mode
 	switch (int_mode) {
 		default:
 		case TMR2_WITHOUT_INTERRUPT:
-			TIMSK &= ~( _BV(OCIE2) | _BV(TOIE2) );
+			TIMSK &= ~_BV(OCIE2);
+			TIMSK &= ~_BV(TOIE2);
 			break;
 
 		case TMR2_WITH_OVERFLOW_INT:
+			TIMSK &= ~_BV(OCIE2);
 			TIMSK |= _BV(TOIE2);
 			break;
 
 		case TMR2_WITH_COMPARE_INT:
+			TIMSK &= ~_BV(TOIE2);
 			TIMSK |= _BV(OCIE2);
 			break;
 	}
