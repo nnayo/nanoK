@@ -1,9 +1,9 @@
 //---------------------
-//  Copyright (C) 2000-2008  <Yann GOUY>
+//  Copyright (C) 2000-2009  <Yann GOUY>
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 2 of the License, or
+//  the Free Software Foundation; either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
@@ -41,21 +41,21 @@ typedef enum {
 //   1       0		CTC (Clear Timer on Compare Match)
 //   1       1		fast PWM
 typedef enum {
-	TMR0_WGM_NORMAL		= 0x00,
+	TMR0_WGM_NORMAL			= 0x00,
 	TMR0_WGM_PHASE_CORRECT	= 0x40,
-	TMR0_WGM_CTC		= 0x08,
-	TMR0_WGM_FAST_PWM	= 0x48,
+	TMR0_WGM_CTC			= 0x08,
+	TMR0_WGM_FAST_PWM		= 0x48,
 } tmr0_wgm_t;
 
 
 // Compare Match Output Mode
 // COM01:0: Compare Match Output Mode
-// 					normal		phase correct	CTC		fast PWM
+// 							normal			phase correct	CTC				fast PWM
 typedef enum {
 	TMR0_COM_00	= 0x00,	//	OC0 disconnect	OC0 disconnect	OC0 disconnect	OC0 disconnect
-	TMR0_COM_01	= 0x10,	//	toggle OC0	reserved	toggle OC0	reserved
-	TMR0_COM_10	= 0x20,	//	clear OC0	clear OC0 up	clear OC0	non inverting
-	TMR0_COM_11	= 0x30,	//	set OC0		set OC0 up	set OC0		inverting
+	TMR0_COM_01	= 0x10,	//	toggle OC0		reserved		toggle OC0		reserved
+	TMR0_COM_10	= 0x20,	//	clear OC0		clear OC0 up	clear OC0		non inverting
+	TMR0_COM_11	= 0x30,	//	set OC0			set OC0 up		set OC0			inverting
 } tmr0_com_t;
 
 

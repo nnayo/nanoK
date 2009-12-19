@@ -4,6 +4,8 @@ drivers	= [
 	'drivers/timer2.c',	\
 	'drivers/twi.c',	\
 	'drivers/sleep.c',	\
+	'drivers/spi.c',	\
+	'drivers/eeprom.c',	\
 ]
 
 utils	= [
@@ -11,10 +13,14 @@ utils	= [
 	'utils/time.c',		\
 ]
 
+externals	= [
+	'externals/w5100.c',	\
+	'externals/adxl345.c',	\
+]
 
-MCU_TARGET      = 'atmega32 '
+MCU_TARGET      = 'atmega324p'
 OPTIMIZE        = '-Os -mcall-prologues -fshort-enums '
-includes	= ['.', 'utils', 'drivers']
+includes	= ['.', 'utils', 'drivers', 'externals']
 CFLAGS		= '-g -Wall ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
 
 env = Environment(
@@ -24,7 +30,7 @@ env = Environment(
 	CPPPATH = includes,	\
 )
 
-env.Library('nanoK', drivers + utils)
+env.Library('nanoK', drivers + utils + externals)
 
 # suppress reliquat files
 env.Alias('clean', '', 'rm -f *~ *o */*.o *.a')

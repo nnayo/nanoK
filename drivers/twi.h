@@ -1,9 +1,9 @@
 //---------------------
-//  Copyright (C) 2000-2008  <Yann GOUY>
+//  Copyright (C) 2000-2009  <Yann GOUY>
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 2 of the License, or
+//  the Free Software Foundation; either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
@@ -100,10 +100,12 @@ extern void TWI_stop(void);
 // 
 // adr : slave I2C address
 // len : length of the data buffer to send or of the number of data to read
-// data : the data buffer
+// data : data buffer belonging to the caller
 //
 // if a master comm failed due to a lost arbitration,
 // this comm will be resumed when the bus will become free
+//
+// if comm is impossible, it returns KO else OK
 //
 extern u8 TWI_ms_tx(u8 adr, u8 len, u8* data);
 extern u8 TWI_ms_rx(u8 adr, u8 len, u8* data);
@@ -113,8 +115,10 @@ extern u8 TWI_ms_rx(u8 adr, u8 len, u8* data);
 // when being addressed as slave, those functions are to be
 // used for sending data to or reading data from the bus master.
 //
-// - len : length of the data buffer
-// - data : data buffer
+// len : length of the data buffer
+// data : data buffer belonging to the caller
+//
+// if comm is impossible, it returns KO else OK
 //
 extern u8 TWI_sl_tx(u8 len, u8* data);
 extern u8 TWI_sl_rx(u8 len, u8* data);
@@ -128,9 +132,9 @@ extern u8 TWI_sl_rx(u8 len, u8* data);
 
 // more details on the requirements for the call back function
 //
-// what to do in the call_back is upon the twi_state and your will.
+// what to do in the call_back is called upon the twi_state and your will.
 //
-// here are descripted all the possible cases depending on the the twi_state
+// here are descripted all the possible cases depending on the twi_state
 //
 // - twi_idle:
 // 	will never happened, it is just an internal state

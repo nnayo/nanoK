@@ -61,51 +61,51 @@ static struct {
 // private fonctions
 //
 
-ISR(USART_RXC_vect)
+ISR(USART0_RX_vect)
 {
 	u8 buf;
 
 	// check for Frame Error
-	if ( UCSRA & _BV(FE) ) {
+	if ( UCSR0A & _BV(FE0) ) {
 		RS.FE_cnt++;
 
-		buf = UDR;		// received data read but unused
+		buf = UDR0;		// received data read but unused
 
 		return;
 	}
 
 	// check for Data OverRun
-	if ( UCSRA & _BV(DOR) ) {
+	if ( UCSR0A & _BV(DOR0) ) {
 		RS.DOR_cnt++;
 
-		buf = UDR;
+		buf = UDR0;
 		if (FIFO_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
 			RS.rx_ovfl_cnt++;		// on error, inc counter
 	}
 
 	// check for Parity Error
-	if ( UCSRA & _BV(PE) ) {
+	if ( UCSR0A & _BV(UPE0) ) {
 		RS.PE_cnt++;
 
-		buf = UDR;		// received data read but unused
+		buf = UDR0;		// received data read but unused
 
 		return;
 	}
 
-	buf = UDR;
+	buf = UDR0;
 	if (FIFO_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
 		RS.rx_ovfl_cnt++;		// on error, inc counter
 }
 
 
-ISR(USART_UDRE_vect)
+ISR(USART0_UDRE_vect)
 {
 	u8 buf;
 
 	if ( FIFO_get(&RS.tx_fifo, &buf) == OK)
-		UDR = buf;		// get a char from fifo is available
+		UDR0 = buf;		// get a char from fifo is available
 	else
-		UCSRB &= ~_BV(UDRIE);	// no more data to send, stop Tx interrupt
+		UCSR0B &= ~_BV(UDRIE0);	// no more data to send, stop Tx interrupt
 }
 
 
@@ -120,11 +120,11 @@ static int RS_put(char data, FILE* f)
 		FIFO_put(&RS.tx_fifo, &data);
 
 		// (re-)enable UDRE interrupt
-		UCSRB |= _BV(UDRIE);
+		UCSR0B |= _BV(UDRIE0);
 	}
 	else {
 		// (re-)enable UDRE interrupt
-		UCSRB |= _BV(UDRIE);
+		UCSR0B |= _BV(UDRIE0);
 
 		// and block as long as there is no empty space in the Tx fifo
 		while ( FIFO_put(&RS.tx_fifo, &data) != OK ) {
@@ -158,14 +158,14 @@ static int RS_get(FILE* f)
 void RS_init(u8 baud)
 {
 	// set transmission speed
-	UBRRH = 0;
-	UBRRL = baud;
+	UBRR0H = 0;
+	UBRR0L = baud;
 
 	// enable interrupt on Rx, Rx and Tx
-	UCSRB = _BV(RXCIE) | _BV(TXEN) | _BV(RXEN);
+	UCSR0B = _BV(RXCIE0) | _BV(TXEN0) | _BV(RXEN0);
 
 	// 8N1
-	UCSRC = _BV(URSEL) | _BV(UCSZ1) | _BV(UCSZ0);
+	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
 
 	// fifoes init
 	FIFO_init(&RS.rx_fifo, RS.rx_buf, RS_RX_LEN, sizeof(u8));

@@ -1,9 +1,9 @@
 //---------------------
-//  Copyright (C) 2000-2008  <Yann GOUY>
+//  Copyright (C) 2000-2009  <Yann GOUY>
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 2 of the License, or
+//  the Free Software Foundation; either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
@@ -19,30 +19,24 @@
 //  you can write to me at <yann_gouy@yahoo.fr>
 //
 
-#ifndef __TYPE_DEF_H__
-# define __TYPE_DEF_H__
+// the driver is intended for W5100 chip from Wiznet
+//
 
-#include <inttypes.h>
 
-// redefinition of types
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+#ifndef __W5100_H__
+# define __W5100_H__
 
-typedef int8_t   s8;
-typedef int16_t  s16;
-typedef int32_t  s32;
-typedef int64_t  s64;
+# include "type_def.h"
 
-// some pratical values
-# define KO	((u8)0)
-# define FALSE	(0 == 1)
-# define OK	((u8)1)
-# define TRUE	(1 == 1)
 
-# ifndef NULL
-#  define NULL   ((void*)0)
-# endif
+// initialization of the W5100 component
+extern u8 W5100_init(void);
 
-#endif	// __TYPE_DEF_H__
+// send a data block to destination IP and port 
+extern u8 W5100_tx(u32 ip, u16 port, u8* data, u8 len);
+
+// read a data block received on port
+extern u8 W5100_rx(u16 port, const u8* data, u8 len);
+
+
+#endif	// __W5100_H__

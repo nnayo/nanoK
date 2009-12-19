@@ -1,9 +1,9 @@
 //---------------------
-//  Copyright (C) 2000-2008  <Yann GOUY>
+//  Copyright (C) 2000-2009  <Yann GOUY>
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
-//  the Free Software Foundation; either version 2 of the License, or
+//  the Free Software Foundation; either version 3 of the License, or
 //  (at your option) any later version.
 //
 //  This program is distributed in the hope that it will be useful,
@@ -19,30 +19,24 @@
 //  you can write to me at <yann_gouy@yahoo.fr>
 //
 
-#ifndef __TYPE_DEF_H__
-# define __TYPE_DEF_H__
+#ifndef __EEPROM_H__
+# define __EEPROM_H__
 
-#include <inttypes.h>
+# include <avr/pgmspace.h>
 
-// redefinition of types
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+# include "type_def.h"
 
-typedef int8_t   s8;
-typedef int16_t  s16;
-typedef int32_t  s32;
-typedef int64_t  s64;
 
-// some pratical values
-# define KO	((u8)0)
-# define FALSE	(0 == 1)
-# define OK	((u8)1)
-# define TRUE	(1 == 1)
+// EEPROM driver initialization
+extern void EEP_init(void);
 
-# ifndef NULL
-#  define NULL   ((void*)0)
-# endif
+// read len byte(s) from EEPROM address addr and copy them in data
+extern u8 EEP_read(u16 addr, u8* data, u8 len);
 
-#endif	// __TYPE_DEF_H__
+// write len byte(s) to EEPROM address addr from data
+extern u8 EEP_write(u16 addr, u8* data, u8 len);
+
+// check if eeprom write has ended
+extern u8 EEP_is_fini(void);
+
+#endif	// __EEPROM_H__
