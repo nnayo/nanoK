@@ -78,6 +78,13 @@ void TIME_incr(void)
 // get current value of TIME
 u32 TIME_get(void)
 {
+	return TIME.time;
+}
+
+
+// get a more accurate current value of TIME
+u32 TIME_get_precise(void)
+{
 	u32 time;
 
 	time = TIME.time;

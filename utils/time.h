@@ -61,5 +61,8 @@ extern void TIME_incr(void);
 // get current value of TIME in tenth of milli-second
 extern u32 TIME_get(void);
 
+// get a more accurate value of TIME in tenth of milli-second
+extern u32 TIME_get_precise(void);
+
 
 #endif	// __TIME_H__

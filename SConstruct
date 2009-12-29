@@ -35,3 +35,7 @@ env.Library('nanoK', drivers + utils + externals)
 # suppress reliquat files
 env.Alias('clean', '', 'rm -f *~ *o */*.o *.a')
 env.AlwaysBuild('clean')
+
+# display sections size
+env.Alias('size', 'libnanoK.a', 'avr-size -t libnanoK.a')
+env.AlwaysBuild('size')

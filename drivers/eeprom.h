@@ -22,8 +22,6 @@
 #ifndef __EEPROM_H__
 # define __EEPROM_H__
 
-# include <avr/pgmspace.h>
-
 # include "type_def.h"
 
 
