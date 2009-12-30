@@ -31,7 +31,6 @@
 // private defines
 //
 
-//#define EEPE		1
 
 //------------------------------
 // private variables
