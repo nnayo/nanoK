@@ -35,10 +35,10 @@ typedef enum {
 // waveform generation mode
 //
 typedef enum {
-	TMR2_WGM_NORMAL = 0x00,	// normal overflow on 0xff
-	TMR2_WGM_PWM	= 0x40,	// pwm
-	TMR2_WGM_CTC	= 0x08,	// clear timer on compare, reset on compare value
-	TMR2_WGM_FASTPWM= 0x48,	// fast pwm
+	TMR2_WGM_NORMAL,	// normal overflow on 0xff
+	TMR2_WGM_PWM,		// pwm
+	TMR2_WGM_CTC,		// clear timer on compare, reset on compare value
+	TMR2_WGM_FASTPWM,	// fast pwm
 } tmr2_wgm_t;
 
 // prescaler values
@@ -72,9 +72,7 @@ typedef enum {
 // - a comparaison value (let it 0 if useless),
 // - and to call a function if provided on oveflow
 //
-// the timer is stopped out of the call of this function
-// except when the irq-mode is nanoK_switch_irq
-// 
+// only OCRA is used right now
 extern void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t wgm, u8 compare, void (*call_back)(void* misc), void* misc);
 
 // reset the timer to 0

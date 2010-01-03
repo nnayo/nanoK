@@ -70,15 +70,19 @@ void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t 
 	TCCR2B = TMR2_STOP;
 
 	// save configuration
-	TMR2.prescaler = prescaler | wgm;
+	TMR2.prescaler = prescaler;
 
 	// reset counter
 	TCNT2 = 0x00;
+
+	// set mode
+	TCCR2A = wgm;
 
 	// Output Compare Register can be set immediatly
 	OCR2A = compare;
 
 	// reset any pending interrupt
+	TIFR2 |= _BV(OCF2B);
 	TIFR2 |= _BV(OCF2A);
 	TIFR2 |= _BV(TOV2);
 
