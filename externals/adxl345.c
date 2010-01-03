@@ -20,12 +20,11 @@
 
 
 #include "externals/adxl345_internals.h"
-
 #include "externals/adxl345.h"
 
 #include "drivers/spi.h"
 
-#include <string.h>		// memcpy()
+#include <string.h>			// memcpy()
 
 
 //-----------------------------------------------------
@@ -48,6 +47,9 @@ u8 ADXL_init(void)
 	u8 tx_buf[2];
 	u8 rx_buf[2];
 
+	// setup the SPI according to ADXL specs
+	SPI_init(SPI_MASTER, SPI_THREE, SPI_MSB, SPI_DIV_2);
+
 	// read the device ID
 	tx_buf[0] = ADXL_READ | DEVID;
 	SPI_master_blocking(tx_buf, 1, rx_buf, 2);
@@ -62,7 +64,7 @@ u8 ADXL_init(void)
 	tx_buf[1] = (1 << 3);
 	SPI_master_blocking(tx_buf, 2, rx_buf, 0);
 
-	return KO;
+	return OK;
 }
 
 
@@ -74,7 +76,7 @@ u8 ADXL_range_set(acc_range_t rg)
 	// set the acceleration range and format the data to be right justified
 	tx_buf[0] = ADXL_WRITE | DATA_FORMAT;
 	tx_buf[1] = (1 << 3) | rg;
-	SPI_master_blocking(tx_buf, 2, rx_buf, 0);
+	SPI_master(tx_buf, 2, rx_buf, 0);
 
 	return OK;
 }
@@ -88,7 +90,7 @@ u8 ADXL_get(u16* acc_x, u16* acc_y, u16* acc_z)
 
 	// read the 6 acceleration values in a row
 	tx_buf[0] = ADXL_READ | ADXL_MB | DATAX0;
-	SPI_master_blocking(tx_buf, 1, rx_buf, 7);
+	SPI_master(tx_buf, 1, rx_buf, 7);
 
 	// format the values
 	*acc_x = (rx_buf[1] << 8) + rx_buf[2];
