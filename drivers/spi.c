@@ -55,17 +55,6 @@ ISR(SPI_STC_vect)
 				return;
 			}
 
-			// if there are still data to send
-			if ( SPI.index < SPI.tx_len ) {
-				// update tx register
-				SPDR = SPI.tx_buf[SPI.index + 1];
-			}
-			else {
-				// no more data to send but apparently still some to receive
-				// so send useless byte
-				SPDR = 0xff;
-			}
-
 			// if there are still data to receive
 			if ( SPI.index < SPI.rx_len ) {
 				// retrieve it from rx register
@@ -77,14 +66,25 @@ ISR(SPI_STC_vect)
 
 			// when emitting buffer is empty and receiving buffer is full 
 			if ( (SPI.index >= SPI.tx_len) && (SPI.index >= SPI.rx_len) ) {
+				// signal end of transmission
+				SPI.call_back(SPI_MASTER_END, SPI.misc);
+				PORTB |= _BV(PB4);	// set /SS high to block slave
+
 				// reset internals
 				SPI.state = SPI_IDLE;
 				SPI.index = 0;
+				break;
+			}
 
-				// and signal end of transmission
-				SPI.call_back(SPI_MASTER_END, SPI.misc);
-				PORTB |= _BV(PB4);	// set /SS high to block slave
-				SPI.state = SPI_IDLE;
+			// if there are still data to send
+			if ( SPI.index < SPI.tx_len ) {
+				// update tx register
+				SPDR = SPI.tx_buf[SPI.index];
+			}
+			else {
+				// no more data to send but apparently still some to receive
+				// so send useless byte
+				SPDR = 0xff;
 			}
 			break;
 
@@ -139,6 +139,7 @@ ISR(SPI_STC_vect)
 }
 
 
+// default call-back only useful for blocking mode
 static void SPI_default_call_back(spi_state_t st, void* misc)
 {
 	(void)st;
