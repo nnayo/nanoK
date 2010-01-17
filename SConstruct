@@ -1,3 +1,5 @@
+import os
+
 drivers	= [
 	'drivers/rs.c',		\
 	'drivers/timer0.c',	\
@@ -25,6 +27,7 @@ includes	= ['.', 'utils', 'drivers', 'externals']
 CFLAGS		= '-g -Wall ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
 
 env = Environment(
+        ENV = os.environ,       \
 	CC = 'avr-gcc',		\
 	AR = 'avr-ar',		\
 	CFLAGS = CFLAGS,	\
