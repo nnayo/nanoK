@@ -19,6 +19,7 @@ externals	= [
 	'externals/w5100.c',	\
 	'externals/adxl345.c',	\
 	'externals/sdcard.c',	\
+	'externals/sdcardMgr.c',	\
 ]
 
 MCU_TARGET      = 'atmega324p'
