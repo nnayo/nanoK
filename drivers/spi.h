@@ -58,6 +58,9 @@ typedef enum {
 // set the behaviour and the mode of the SPI block
 extern void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_order, spi_clock_div_t clock_div);
 
+// set the SPI clock speed
+extern void SPI_set_clock(spi_clock_div_t clock_div);
+
 // set a call-back function and an optional parameter
 extern void SPI_call_back_set(void (*call_back)(spi_state_t st, void* misc), void* misc);
 

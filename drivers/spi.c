@@ -215,41 +215,7 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 			break;
 	}
 
-	switch ( clock_div ) {
-		case SPI_DIV_2:
-			SPSR |= _BV(SPI2X);
-			break;
-
-		case SPI_DIV_4:
-			break;
-
-		case SPI_DIV_8:
-			SPSR |= _BV(SPI2X);
-			SPCR |= _BV(SPR0);
-			break;
-
-		case SPI_DIV_16:
-			SPCR |= _BV(SPR0);
-			break;
-
-		case SPI_DIV_32:
-			SPSR |= _BV(SPI2X);
-			SPCR |= _BV(SPR1);
-			break;
-
-		case SPI_DIV_64:
-			SPCR |= _BV(SPR1);
-			break;
-
-		case SPI_DIV_128:
-			SPCR |= _BV(SPR0);
-			SPCR |= _BV(SPR1);
-			break;
-
-		default:
-			return;
-			break;
-	}
+	SPI_set_clock(clock_div);
 
 	// configuration passed : set the correct behaviour
 	SPI.behaviour = behaviour;
@@ -267,6 +233,48 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 	SPCR |= _BV(SPIE);
 }
 
+// set the SPI clock speed
+void SPI_set_clock(spi_clock_div_t clock_div)
+{
+    SPSR &= (~_BV(SPI2X));
+    SPCR &= (~_BV(SPR0)) & (~_BV(SPR1));
+    
+    switch ( clock_div ) {
+    case SPI_DIV_2:
+        SPSR |= _BV(SPI2X);
+        break;
+        
+    case SPI_DIV_4:
+        break;
+        
+    case SPI_DIV_8:
+        SPSR |= _BV(SPI2X);
+        SPCR |= _BV(SPR0);
+        break;
+        
+    case SPI_DIV_16:
+        SPCR |= _BV(SPR0);
+        break;
+        
+    case SPI_DIV_32:
+        SPSR |= _BV(SPI2X);
+        SPCR |= _BV(SPR1);
+        break;
+        
+    case SPI_DIV_64:
+        SPCR |= _BV(SPR1);
+        break;
+        
+    case SPI_DIV_128:
+        SPCR |= _BV(SPR0);
+        SPCR |= _BV(SPR1);
+        break;
+        
+    default:
+        return;
+        break;
+    }
+}
 
 // call-back init
 void SPI_call_back_set(void (*call_back)(spi_state_t st, void* misc), void* misc)
