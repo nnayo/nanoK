@@ -28,8 +28,8 @@
 #ifdef SDMGR_USE_THREADS
 #include "utils/pt.h"
 #endif
-#include "externals/sdCard.h"
-#include "externals/sdCardMgr.h"
+#include "externals/sdcard.h"
+#include "externals/sdcardMgr.h"
 
 
 
