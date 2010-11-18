@@ -127,6 +127,9 @@
 #define S2_OFFSET	((u16)0x0600)
 #define S3_OFFSET	((u16)0x0700)
 
+// compute offset from socket index
+#define S_OFFSET(n)	\
+	(n == 0) ? S0_OFFSET : (n == 1) ? S1_OFFSET : (n == 2) ? S2_OFFSET : S3_OFFSET
 
 // socket registers (without offset)
 //
@@ -139,6 +142,11 @@
 
 // socket n interrupt
 # define	Sn_IR		((u16)0x0002)
+# define	Sn_IR_SEND_OK	(1 << 4)
+# define	Sn_IR_TIMEOUT	(1 << 3)
+# define	Sn_IR_RECV		(1 << 2)
+# define	Sn_IR_DISCON	(1 << 1)
+# define	Sn_IR_CON		(1 << 0)
 
 // socket n status
 # define	Sn_SR		((u16)0x0003)
@@ -182,23 +190,23 @@
 // 0x0017 - 0x001f
 
 // socket n TX free size
-# define	Sn_TX_FSR0	((u16)0x0020)
+# define	Sn_TX_FSR0	((u16)0x0020)	// upper byte to be read first
 # define	Sn_TX_FSR1	((u16)0x0021)
 
 // socket n TX read pointer
-# define	Sn_TX_RD0	((u16)0x0022)
-# define	Sn_TX_RD1	((u16)0x0023)
+# define	Sn_TX_RR0	((u16)0x0022)	// upper byte to be read first
+# define	Sn_TX_RR1	((u16)0x0023)
 
 // socket n TX write pointer
-# define	Sn_TX_WR0	((u16)0x0024)
+# define	Sn_TX_WR0	((u16)0x0024)	// upper byte to be read first
 # define	Sn_TX_WR1	((u16)0x0025)
 
 // socket n RX received size
-# define	Sn_RX_RSR0	((u16)0x0026)
+# define	Sn_RX_RSR0	((u16)0x0026)	// upper byte to be read first
 # define	Sn_RX_RSR1	((u16)0x0027)
 
 // socket n RX read pointer
-# define	Sn_RX_RD0	((u16)0x0028)
+# define	Sn_RX_RD0	((u16)0x0028)	// upper byte to be read first
 # define	Sn_RX_RD1	((u16)0x0029)
 
 // reserved
@@ -221,7 +229,47 @@ typedef struct {
 } w5100_stream_t;
 
 typedef enum {
-	W5100_CLOSED,
+	MODE_CLOSED	= 0x00,
+	MODE_TCP	= 0x01,
+	MODE_UDP	= 0x02,
+	MODE_IPRAW	= 0x03,
+	MODE_MACRAW	= 0x04,	// for socket 0 only
+	MODE_PPPOE	= 0x05,	// for socket 0 only
+	MODE_ND_MC	= 0x20,
+	MODE_MULTI	= 0x80,
+} socket_mode_t;
+
+typedef enum {
+	CMD_OPEN		= 0x01,
+	CMD_LISTEN		= 0x02,
+	CMD_CONNECT		= 0x04,
+	CMD_DISCON		= 0x08,
+	CMD_CLOSE		= 0x10,
+	CMD_SEND		= 0x20,
+	CMD_SEND_MAC	= 0x21,
+	CMD_SEND_KEEP	= 0x22,
+	CMD_RECV		= 0x40,
+} socket_command_t;
+
+typedef enum {
+	SOCKET_CLOSED		= 0x00,
+	SOCKET_INIT			= 0x13,
+	SOCKET_LISTEN		= 0x14,
+	SOCKET_ESTABLISHED	= 0x17,
+	SOCKET_CLOSE_WAIT	= 0x1c,
+	SOCKET_UDP			= 0x22,
+	SOCKET_IPRAW		= 0x32,
+	SOCKET_MACRAW		= 0x42,
+	SOCKET_PPPOE		= 0x5f,
+	SOCKET_SYNSENT		= 0x15,
+	SOCKET_SYNRECV		= 0x16,
+	SOCKET_FIN_WAIT		= 0x18,
+	SOCKET_CLOSING		= 0x1a,
+	SOCKET_TIME_WAIT	= 0x1b,
+	SOCKET_LAST_ACK		= 0x1d,
+	SOCKET_ARP_1		= 0x11,
+	SOCKET_ARP_2		= 0x21,
+	SOCKET_ARP_3		= 0x31,
 } socket_state_t;
 
-#endif	// __W5100_INTERNALS_H__
+#endif	// __SOCKET_INTERNALS_H__
