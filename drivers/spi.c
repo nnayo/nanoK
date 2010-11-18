@@ -50,7 +50,7 @@ ISR(SPI_STC_vect)
 
 				// signal error
 				SPI.call_back(SPI_ERROR, SPI.misc);
-				SPI.state = SPI_ERROR;
+				SPI.state = SPI_IDLE;
 
 				return;
 			}
@@ -96,7 +96,7 @@ ISR(SPI_STC_vect)
 
 				// signal error
 				SPI.call_back(SPI_ERROR, SPI.misc);
-				SPI.state = SPI_ERROR;
+				SPI.state = SPI_IDLE;
 
 				return;
 			}
@@ -135,6 +135,7 @@ ISR(SPI_STC_vect)
 			SPI.call_back(SPI_ERROR, SPI.misc);
 			SPI.state = SPI_IDLE;
 			break;
+
 	}
 }
 
@@ -310,6 +311,11 @@ u8 SPI_master(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len)
 
 u8 SPI_master_blocking(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len)
 {
+	// check initial conditions
+	if ( (SPI.state != SPI_IDLE) || (SPI.behaviour != SPI_MASTER) ) {
+		return KO;
+	}
+
 	// save set call-back context
 	void (*call_back)(spi_state_t st, void* misc);
 	call_back = SPI.call_back;
