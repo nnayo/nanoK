@@ -87,6 +87,33 @@ u8 FIFO_get(fifo_t *f, void* elem)
 }
 
 
+u8 FIFO_unget(fifo_t* f, void* elem)
+{
+	u8 sreg = SREG;
+	cli();
+
+	// if there's at least a free place
+	if (f->nb < f->lng) {
+		// rewind extraction pointer
+		f->out -= f->elem_size;
+
+		// loop back at the begin
+		if (f->out < f->donnees)
+			f->out = f->donnees + (f->lng - 1) * f->elem_size;
+		f->nb++;
+
+		// add the new element
+		memcpy(f->out, elem, f->elem_size);
+
+		SREG = sreg;
+		return OK;
+	} else {
+		SREG = sreg;
+		return KO;
+	}
+}
+
+
 u16 FIFO_free(fifo_t* f)
 {
 	return (f->lng - f->nb);

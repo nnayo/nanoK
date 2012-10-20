@@ -55,6 +55,12 @@ extern u8 FIFO_put(fifo_t* f, void* elem);
 extern u8 FIFO_get(fifo_t* f, void* elem);
 
 
+// put back an element to the given fifo
+// return OK if every thing ok else KO
+// 
+extern u8 FIFO_unget(fifo_t* f, void* elem);
+
+
 // returns the free place in the given fifo
 // in term of elements
 //
