@@ -45,4 +45,8 @@ typedef int64_t  s64;
 #  define NULL   ((void*)0)
 # endif
 
+# ifndef _BV
+#  define _BV(x)   (1 << x)
+# endif
+
 #endif	// __TYPE_DEF_H__
