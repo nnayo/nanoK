@@ -40,6 +40,16 @@
 
 # define NB_SOCKETS	4
 
+// memory mapping
+//
+# define REGS_DOWN_LIMIT	((u16)0x0000)
+# define REGS_UP_LIMIT		((u16)0x002f)
+# define SOCK_DOWN_LIMIT	((u16)0x0400)
+# define SOCK_UP_LIMIT		((u16)0x07ff)
+# define TX_DOWN_LIMIT		((u16)0x4000)
+# define TX_UP_LIMIT		((u16)0x5fff)
+# define RX_DOWN_LIMIT		((u16)0x6000)
+# define RX_UP_LIMIT		((u16)0x7fff)
 
 // common registers
 //

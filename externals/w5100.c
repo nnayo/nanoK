@@ -22,6 +22,16 @@
 // the driver is intended for W5100 chip from Wiznet
 //
 
+// design
+//
+// first, SW reset and basic configuration
+//
+// then if DHCP is required, 
+// all other activities are suspended up to IP address acquisition
+//
+// every socket have its dedicated thread
+// transmission duration and time-out are handled in this thread
+//
 
 #include "externals/w5100.h"
 
@@ -29,7 +39,17 @@
 
 #include "drivers/spi.h"
 
+#include "utils/pt.h"
+
 #include <string.h>		// memcpy()
+
+
+//-----------------------------------------------------
+// private defines
+//
+
+#define UDP_HEADER_SIZE	8
+#define RAW_HEADER_SIZE	6
 
 
 //-----------------------------------------------------
@@ -39,15 +59,18 @@
 // socket descriptor
 typedef struct {
 	W5100_prot_t prot;
-	u16 tx_start_addr;
-	u16 tx_end_addr;
-	u16 rx_start_addr;
-	u16 rx_end_addr;
+	u16 tx_down_limit;
+	u16 tx_up_limit;
+	u16 rx_down_limit;
+	u16 rx_up_limit;
+	pt_t pt;
 } socket_t;
 
 
 // component instance
 static struct {
+	W5100_mode_t mode;
+
 	socket_t socket[NB_SOCKETS];
 } W5100;
 
@@ -72,13 +95,18 @@ static void W5100_write(u16 addr, u8 data)
 
 
 // send a data block of len bytes starting at given address
-static void W5100_write_block(u16 addr, u8* data, u8 len)
+static void W5100_write_block(u16 addr, u8* data, u8 len, u16 down_limit, u16 up_limit)
 {
 	u8 i;
 
 	// send data byte by byte
 	for (i = 0; i < len; i++) {
-		W5100_write(addr + i, data[i]);
+		if ( (addr + i) < up_limit ) {
+			W5100_write(addr + i, data[i]);
+		} 
+		else {
+			W5100_write(addr + i - up_limit + down_limit, data[i]);
+		}
 	}
 }
 
@@ -101,14 +129,179 @@ static u8 W5100_read(u16 addr)
 
 
 // retrieve a data block of len bytes starting at given address
-static void W5100_read_block(u16 addr, u8* data, u8 len)
+static void W5100_read_block(u16 addr, u8* data, u8 len, u16 down_limit, u16 up_limit)
 {
 	u8 i;
 
 	// retrieve data byte by byte
 	for (i = 0; i < len; i++) {
-		data[i] = W5100_read(addr + i);
+		if ( (addr + i) < up_limit ) {
+			data[i] = W5100_read(addr + i);
+		} 
+		else {
+			data[i] = W5100_read(addr + i - up_limit + down_limit);
+		}
 	}
+}
+
+
+static PT_THREAD( W5100_tx(u8 sock, u8* data, u8 len, IP_address_t ip_addr, u16 port, W5100_status_t* status) )
+{
+	socket_t* socket = &W5100.socket[sock];
+	pt_t* pt = &socket->pt;
+	u16 sock_offset = S_OFFSET(sock);
+	u16 free_size;
+	u16 block_addr;
+	u8 ir;
+
+	PT_BEGIN(pt);
+
+	// algo is the same for TCP, UDP and RAW protocols
+	//
+
+	// if exiting too soon, it will be on error
+	*status = W5100_ERROR;
+
+	// check if enough empty room
+	free_size  = W5100_read(sock_offset + Sn_TX_FSR0) << 8;
+	free_size += W5100_read(sock_offset + Sn_TX_FSR0) << 0;
+	if (free_size < len) {
+		PT_EXIT(pt);
+	}
+
+	switch (socket->prot) {
+		case SOCK_STREAM:
+			// IP and port already set
+			break;
+
+		case SOCK_DGRAM:
+			// set destination IP
+			W5100_write(S_OFFSET(sock) + Sn_DIPR0, ip_addr[3]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR1, ip_addr[2]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR2, ip_addr[1]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR3, ip_addr[0]);
+
+			// set destination port
+			W5100_write(S_OFFSET(sock) + Sn_PORT0, (port & 0xff00) >> 8);
+			W5100_write(S_OFFSET(sock) + Sn_PORT1, (port & 0x00ff) >> 0);
+
+			// set IP and port
+			break;
+
+		case SOCK_RAW:
+			// TODO
+			break;
+
+		case SOCK_NONE:
+			PT_EXIT(pt);
+			break;
+	}
+
+	// service is now running
+	*status = W5100_RUNNING;
+
+	// retrieve current data block write address
+	block_addr  = W5100_read(sock_offset + Sn_TX_WR0) << 8;
+	block_addr += W5100_read(sock_offset + Sn_TX_WR1) << 0;
+
+	// copy data block
+	W5100_write_block(block_addr, data, len, socket->tx_down_limit, socket->tx_up_limit);
+
+	// update TX write pointer
+	block_addr += len;
+	if ( block_addr > socket->tx_up_limit ) {
+		block_addr = socket->tx_down_limit;
+	}
+	W5100_write(sock_offset + Sn_TX_WR0, (block_addr & 0xff00) >> 8);
+	W5100_write(sock_offset + Sn_TX_WR1, (block_addr & 0x00ff) >> 0);
+
+	// start transmittion
+	W5100_write(sock_offset + Sn_CR, CMD_SEND);
+
+	// transmission will be finished when Sn_IR == SEND_OK | TIMEOUT
+	PT_WAIT_UNTIL(pt, (ir = W5100_read(sock_offset + Sn_IR)) & (Sn_IR_SEND_OK | Sn_IR_TIMEOUT));
+
+	if (ir & Sn_IR_SEND_OK) {
+		*status = W5100_SUCCESS;
+	}
+	else if (ir & Sn_IR_TIMEOUT) {
+		*status = W5100_ERROR;
+	}
+
+	// reset Sn_IR flags
+	W5100_write(sock_offset + Sn_IR, Sn_IR_SEND_OK | Sn_IR_TIMEOUT);
+
+	PT_END(pt);
+}
+
+
+static PT_THREAD( W5100_rx(pt_t* pt, W5100_status_t* status) )
+{
+	PT_BEGIN(pt);
+	PT_END(pt);
+}
+
+
+// DHCP algo
+//
+// client port : 68
+// server port : 67
+static PT_THREAD( W5100_dhcp(pt_t* pt) )
+{
+	typedef struct {
+		u8 op;				// 1 : BOOTREQUEST, 2 : BOOTREPLY
+		u8 htype;			// hardware adress type : 1
+		u8 hlen;			// hardware address length : 6
+		u8 hops;			// 0
+		u32 xid;			// transaction id : random
+		u16 secs;			// seconds passed sinc client began the request process
+		u16 flags;			//
+		u32 ciaddr;			// client IP address : filled in by client
+		u32 yiaddr;			// your client IP address : server response
+		u32 siaddr;			// server IP address
+		u32 giaddr;			// relay agent IP address
+		u8 chaddr[16];		// client hardware agent
+		u8 sname[64];		// server host name, null terminated string
+		u8 file[128];		// boot file name, null terminated
+		u8 options[312];	// DHCPDISCOVER, DHCPOFFER, DHCPREQUEST,...
+	} DHCP_packet_t;		// due to its size, this packet has to be memory-mapped in W5100 RAM
+
+	typedef enum {
+		IP_ADDRESS_LEASE_TIME = 51,
+		DHCP_MESSAGE_TYPE = 53,
+	} option_t;
+
+	typedef enum {
+		DHCPDISCOVER,
+		DHCPOFFER
+	} DHCP_message_type_t;
+
+	IP_address_t ip_addr = {0, 0, 0, 0};
+
+	PT_BEGIN(pt);
+
+	// socket #0 is already opened in UDP mode
+
+	// set IP address to 0.0.0.0
+	W5100_IP_address_set(ip_addr);
+
+	// send DHCP_DISCOVER frame
+
+	// wait DHCP_OFFER frame
+
+	// reply DHCP_REQUEST frame
+
+	// wait DHCP_ACK frame
+
+	PT_END(pt);
+}
+
+
+// TCP socket handling
+static PT_THREAD( W5100_tcp(pt_t* pt, socket_t* socket) )
+{
+	PT_BEGIN(pt);
+	PT_END(pt);
 }
 
 
@@ -118,7 +311,7 @@ static void W5100_read_block(u16 addr, u8* data, u8 len)
 
 
 // initialization of the W5100 component
-u8 W5100_init(const W5100_mode_t mode, const MAC_address_t mac_addr)
+u8 W5100_init(const W5100_mode_t mode)
 {
 	u8 i;
 
@@ -159,15 +352,27 @@ u8 W5100_init(const W5100_mode_t mode, const MAC_address_t mac_addr)
 	// RMSR	: 2Ko per rx socket
 	W5100_write(RMSR, 0x55);
 	for (i = 0; i < NB_SOCKETS; i++) {
-		W5100.socket[i].tx_start_addr = 0x4000 + i * 0x0800;
-		W5100.socket[i].tx_end_addr = 0x4800 - 1 + i * 0x0800;
+		W5100.socket[i].tx_down_limit = 0x4000 + i * 0x0800;
+		W5100.socket[i].tx_up_limit = 0x4800 - 1 + i * 0x0800;
 	}
 
 	// TMSR	: 2Ko per tx socket
 	W5100_write(TMSR, 0x55);
 	for (i = 0; i < NB_SOCKETS; i++) {
-		W5100.socket[i].rx_start_addr = 0x6000 + i * 0x0800;
-		W5100.socket[i].rx_end_addr = 0x6800 - 1 + i * 0x0800;
+		W5100.socket[i].rx_down_limit = 0x6000 + i * 0x0800;
+		W5100.socket[i].rx_up_limit = 0x6800 - 1 + i * 0x0800;
+	}
+
+	// save mode
+	W5100.mode = mode;
+
+	// if DHCP is asked
+	if (mode == W5100_DHCP) {
+		// then lock every socket in UDP mode
+		for (i = 0; i < NB_SOCKETS; i++) {
+			(void)W5100_socket(SOCK_DGRAM);
+		}
+		// they will be unlocked after IP address attribution
 	}
 
 	return OK;
@@ -178,9 +383,12 @@ u8 W5100_init(const W5100_mode_t mode, const MAC_address_t mac_addr)
 void W5100_run(void)
 {
 	// if the DHCP mode is enable
-	// handle it
+	if (W5100.mode == W5100_DHCP) {
+		// handle it
+		W5100_dhcp(&W5100.socket[0].pt);
+	}
 	// then continue in normal mode
-	//
+
 	// normal mode
 	// wait until IP address is set
 	// then poll sockets status for received packets
@@ -193,15 +401,17 @@ void W5100_IP_address_set(const IP_address_t ip_addr)
 	// network settings
 	//
 	// Gateway Address Register: IP_address & 'x.x.x.255'
+	// except if IP address is 0.0.0.0 then gateway is also 0.0.0.0
 	W5100_write(GAR0, ip_addr[0]);
 	W5100_write(GAR1, ip_addr[1]);
 	W5100_write(GAR2, ip_addr[2]);
-	W5100_write(GAR3, 255);
+	W5100_write(GAR3, ip_addr[3] ? 255 : 0);
 
 	// Subnet Mask Register '255.255.255.0'
-	W5100_write(SUBR0, 255);
-	W5100_write(SUBR1, 255);
-	W5100_write(SUBR2, 255);
+	// except if IP address is 0.0.0.0 then subnet is also 0.0.0.0
+	W5100_write(SUBR0, ip_addr[0] ? 255 : 0);
+	W5100_write(SUBR1, ip_addr[1] ? 255 : 0);
+	W5100_write(SUBR2, ip_addr[2] ? 255 : 0);
 	W5100_write(SUBR3, 0);
 
 	// Source IP Address Register (SIPR)
@@ -225,17 +435,25 @@ void W5100_IP_address_get(IP_address_t ip_addr)
 // create a new socket
 u8 W5100_socket(W5100_prot_t prot)
 {
+	socket_t* socket;
 	socket_state_t state;
 	u8 i;
 
 	// search for available socket
 	for (i = 0; i < NB_SOCKETS; i++) {
+		socket = &W5100.socket[i];
+
+		// only a free socket can be open
+		if (socket->prot != SOCK_NONE)
+			continue;
+
 		// retrieve socket state
 		state = (socket_state_t)W5100_read(S_OFFSET(i) + Sn_SR);
 
 		// if socket is closed then it is available
-		if ( (state == SOCKET_CLOSED) && (W5100.socket[i].prot == SOCK_NONE) ) {
-			W5100.socket[i].prot = prot;
+		if (state == SOCKET_CLOSED) {
+			socket->prot = prot;
+			PT_INIT(&socket->pt);
 			return i;
 		}
 	}
@@ -246,44 +464,38 @@ u8 W5100_socket(W5100_prot_t prot)
 
 
 // close a socket
-u8 W5100_close(u8 sock)
+void W5100_close(u8 sock)
 {
+	socket_t* socket;
 	socket_state_t state;
 
 	// retrieve socket state
 	state = (socket_state_t)W5100_read(S_OFFSET(sock) + Sn_SR);
 
 	// if socket is already closed
-	if ( (state == SOCKET_CLOSED) && (W5100.socket[sock].prot == SOCK_NONE) )
-		return KO;
+	socket = &W5100.socket[sock];
+	if ( (state == SOCKET_CLOSED) && (socket->prot == SOCK_NONE) )
+		return;
 
 	// send close command
 	W5100_write(S_OFFSET(sock) + Sn_CR, CMD_CLOSE);
 
 	// update socket protocol
-	W5100.socket[sock].prot = SOCK_NONE;
-	return OK;
+	socket->prot = SOCK_NONE;
 }
 
 
 // bind socket for incoming packets from ip_addr:port
 u8 W5100_bind(u8 sock, IP_address_t ip_addr, u16 port)
 {
-	return KO;
-}
-
-
-// connect socket for outgoing packets to ip_addr:port
-u8 W5100_connect(u8 sock, IP_address_t ip_addr, u16 port)
-{
 	u8 buf;
 
 	switch (W5100.socket[sock].prot) {
-		case SOCK_STREAM:	// TCP
-			// set UDP mode
+		case SOCK_STREAM:	// TCP (server mode)
+			// set TCP mode
 			W5100_write(S_OFFSET(sock) + Sn_MR, MODE_TCP);
 
-			// set protocol value
+			// set port
 			W5100_write(S_OFFSET(sock) + Sn_PORT0, (port & 0xff00) >> 8);
 			W5100_write(S_OFFSET(sock) + Sn_PORT1, (port & 0x00ff) >> 0);
 
@@ -305,7 +517,7 @@ u8 W5100_connect(u8 sock, IP_address_t ip_addr, u16 port)
 			// set UDP mode
 			W5100_write(S_OFFSET(sock) + Sn_MR, MODE_UDP);
 
-			// set protocol value
+			// set port
 			W5100_write(S_OFFSET(sock) + Sn_PORT0, (port & 0xff00) >> 8);
 			W5100_write(S_OFFSET(sock) + Sn_PORT1, (port & 0x00ff) >> 0);
 
@@ -322,8 +534,8 @@ u8 W5100_connect(u8 sock, IP_address_t ip_addr, u16 port)
 			}
 
 			// set destination address and port
-			W5100_write_block(S_OFFSET(sock) + Sn_DIPR0, (u8*)&ip_addr, sizeof(IP_address_t));
-			W5100_write_block(S_OFFSET(sock) + Sn_DPORT0, (u8*)&port, sizeof(u16));
+			W5100_write_block(S_OFFSET(sock) + Sn_DIPR0, (u8*)&ip_addr, sizeof(IP_address_t), REGS_DOWN_LIMIT, REGS_UP_LIMIT);
+			W5100_write_block(S_OFFSET(sock) + Sn_DPORT0, (u8*)&port, sizeof(u16), REGS_DOWN_LIMIT, REGS_UP_LIMIT);
 
 			break;
 
@@ -356,68 +568,136 @@ u8 W5100_connect(u8 sock, IP_address_t ip_addr, u16 port)
 }
 
 
-// send data
-u8 W5100_send(u8 sock, u8* data, u8 len)
+// connect socket to host at ip_addr:port
+u8 W5100_connect(u8 sock, IP_address_t ip_addr, u16 port)
 {
-	u16 free_size;
-	u16 start_addr;
-	u8 addr;
+	u8 buf;
 
-	// check if enough empty room
-	// copy data block
-	// start transmittion
 	switch (W5100.socket[sock].prot) {
-		case SOCK_STREAM:	// TCP
-			break;
+		case SOCK_STREAM:	// TCP (client mode)
+			// set TCP mode
+			W5100_write(S_OFFSET(sock) + Sn_MR, MODE_TCP);
 
-		case SOCK_DGRAM:	// UDP
-			// check if enough empty room
-			W5100_read_block(S_OFFSET(sock) + Sn_TX_FSR0, (u8*)&free_size, sizeof(free_size));
-			if (free_size < len) {
+			// set destination IP
+			W5100_write(S_OFFSET(sock) + Sn_DIPR0, ip_addr[3]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR1, ip_addr[2]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR2, ip_addr[1]);
+			W5100_write(S_OFFSET(sock) + Sn_DIPR3, ip_addr[0]);
+
+			// set destination port
+			W5100_write(S_OFFSET(sock) + Sn_PORT0, (port & 0xff00) >> 8);
+			W5100_write(S_OFFSET(sock) + Sn_PORT1, (port & 0x00ff) >> 0);
+
+			// issue OPEN command
+			W5100_write(S_OFFSET(sock) + Sn_CR, CMD_OPEN);
+
+			// check if mode has correctly changed
+			buf = W5100_read(S_OFFSET(sock) + Sn_SR);
+			if (buf != SOCKET_INIT) {
+				// issue CLOSE command
+				W5100_write(S_OFFSET(sock) + Sn_CR, CMD_CLOSE);
+
 				return KO;
 			}
 
-			// copy data block
-			W5100_write_block(S_OFFSET(sock) + Sn_TX_WR0, (u8*)&start_addr, sizeof(start_addr));
-
-			// start transmittion
 			break;
 
-		case SOCK_RAW:	// IP RAW
-			break;
-
+		case SOCK_DGRAM:	// UDP
+		case SOCK_RAW:		// IP RAW
 		default:
-			break;
+			return KO;
 	}
 
-	return KO;
+	return OK;
 }
 
 
-// read received data if any
-u8 W5100_recv(u8 sock, u8* data, u8* len)
+// send data
+W5100_status_t W5100_sendto(u8 sock, u8* data, u8 len, IP_address_t ip_addr, u16 port)
 {
+	W5100_status_t status;
+
+	W5100_tx(sock, data, len, ip_addr, port, &status);
+
+	return status;
+}
+
+
+// UDP read received data if any
+W5100_status_t W5100_recvfrom(u8 sock, u8* data, u8* len, IP_address_t ip_addr, u16 port)
+{
+	socket_t socket;
+	u16 rx_size;
+	u16 block_addr;
+	u8 header[(UDP_HEADER_SIZE > RAW_HEADER_SIZE) ? UDP_HEADER_SIZE : RAW_HEADER_SIZE];
 	u8 buf;
+
+	socket = W5100.socket[sock];
+
+	// check if socket is open
 
 	// check if data is received
 	buf = W5100_read(S_OFFSET(sock) + Sn_IR);
 	if ( ~(buf & Sn_IR_RECV) ) {
 		// no data received
-		return KO;
+		return W5100_RUNNING;
 	}
 
-	switch (W5100.socket[sock].prot) {
+	// retrieve received ddata block size
+	rx_size  = W5100_read(S_OFFSET(sock) + Sn_RX_RSR0) << 8;
+	rx_size += W5100_read(S_OFFSET(sock) + Sn_RX_RSR1) << 0;
+
+	// retrieve current data block read address
+	block_addr  = W5100_read(S_OFFSET(sock) + Sn_RX_RD0) << 8;
+	block_addr += W5100_read(S_OFFSET(sock) + Sn_RX_RD1) << 0;
+
+	switch (socket.prot) {
 		case SOCK_STREAM:	// TCP
+			// there's no specific header
 			break;
 
 		case SOCK_DGRAM:	// UDP
+			// retrieve specific UDP header
+			W5100_read_block(block_addr, header, UDP_HEADER_SIZE, socket.rx_down_limit, socket.rx_up_limit);
+
+			// get received size
+			*len = (header[4] << 8) + header[5];
+
+			// update data block address
+			block_addr += *len;
 			break;
 
 		case SOCK_RAW:	// IP RAW
+			// retrieve specific RAW header
+			W5100_read_block(block_addr, header, RAW_HEADER_SIZE, socket.rx_down_limit, socket.rx_up_limit);
+
+			// get received size
+			*len = (header[6] << 8) + header[7];
+
+			// update data block address
+			block_addr += *len;
 			break;
 
 		default:
 			break;
 	}
+
+	// compute length
+	*len = (*len > rx_size) ? rx_size : *len;
+
+	// copy data block
+	W5100_read_block(block_addr, data, *len, socket.rx_down_limit, socket.rx_up_limit);
+
+	// update RX read pointer
+	block_addr += *len;
+	if ( block_addr > socket.rx_up_limit ) {
+		block_addr = socket.rx_down_limit;
+	}
+	W5100_write(S_OFFSET(sock) + Sn_RX_RD0, (block_addr & 0xff00) >> 8);
+	W5100_write(S_OFFSET(sock) + Sn_RX_RD1, (block_addr & 0x00ff) >> 0);
+
+	// confirm correct reception
+	W5100_write(S_OFFSET(sock) + Sn_CR, CMD_RECV);
+	
 	return KO;
 }
