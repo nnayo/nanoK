@@ -61,7 +61,7 @@ static struct {
 // private fonctions
 //
 
-ISR(USART0_RX_vect)
+ISR(USART_RX_vect)
 {
 	u8 buf;
 
@@ -98,7 +98,7 @@ ISR(USART0_RX_vect)
 }
 
 
-ISR(USART0_UDRE_vect)
+ISR(USART_UDRE_vect)
 {
 	u8 buf;
 
