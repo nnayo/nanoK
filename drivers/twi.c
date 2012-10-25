@@ -110,7 +110,7 @@ static void TWI_call_back_call(twi_state_t state)
 // TWI_isr
 ISR(TWI_vect)
 {
-	static const void *status_action[] PROGMEM = {
+	static const void* const status_action[] PROGMEM = {
 		&&_TW_BUS_ERROR,		// 0x00
 		&&_TW_START,			// 0x08
 		&&_TW_REP_START,		// 0x10
