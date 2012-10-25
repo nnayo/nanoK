@@ -1,29 +1,5 @@
 import os
 
-drivers	= [
-	'drivers/rs.c',		\
-	'drivers/timer0.c',	\
-	'drivers/timer1.c',	\
-	'drivers/timer2.c',	\
-	'drivers/twi.c',	\
-	'drivers/sleep.c',	\
-	'drivers/spi.c',	\
-	'drivers/eeprom.c',	\
-]
-
-utils	= [
-	'utils/fifo.c',		\
-	'utils/time.c',		\
-	'utils/state_machine.c',		\
-]
-
-externals	= [
-	'externals/w5100.c',	\
-	'externals/adxl345.c',	\
-	'externals/sdcard.c',	\
-	'externals/sdcardMgr.c',	\
-]
-
 MCU_TARGET      = 'atmega328p'
 OPTIMIZE        = '-Os -mcall-prologues -fshort-enums -std=c99 '
 includes	= ['.', 'utils', 'drivers', 'externals']
@@ -37,7 +13,10 @@ env = Environment(
 	CPPPATH = includes,	\
 )
 
-env.Library('nanoK', drivers + utils + externals)
+Export('env')
+
+SConscript(['SConscript', ], exports='env')
+
 
 # suppress reliquat files
 env.Alias('clean', '', 'rm -f *~ *o */*.o *.a *.lis')
