@@ -82,19 +82,20 @@ ISR(TIMER1_OVF_vect)
 // public functions
 //
 
-void TMR1_init(tmr1_int_mode_t int_mode, tmr1_prescaler_t prescaler, tmr1_wgm_t wgm, void (*call_back)(tmr1_chan_t chan, void* misc), void* misc)
+void TMR1_init(tmr1_int_mode_t int_mode, tmr1_prescaler_t prescaler, tmr1_wgm_t wgm, tmr1_cmp_out_md_t cmp_md, void (*call_back)(tmr1_chan_t chan, void* misc), void* misc)
 {
 	// stop counter
 	TCCR1B = TMR1_STOP;
 
-	// save configuration
+	// save prescaler configuration
 	TMR1.prescaler = prescaler;
 
 	// reset counter
-	TCNT1 = 0x00;
+	TCNT1 = 0x0000;
 
 	// set mode
-	TCCR1A = wgm;
+	TCCR1A = (cmp_md << 4) | (wgm & (_BV(WGM11) | _BV(WGM10)));
+	TCCR1B = (TCCR1B & (_BV(WGM13) | _BV(WGM12))) | ((wgm & 0x0c) << 1);
 
 	// reset any pending interrupt
 	TIFR1 |= _BV(ICF1) | _BV(OCF1B) | _BV(OCF1A) | _BV(TOV1);
@@ -108,32 +109,36 @@ void TMR1_init(tmr1_int_mode_t int_mode, tmr1_prescaler_t prescaler, tmr1_wgm_t 
 	TMR1.misc = misc;
 }
 
+
 void TMR1_reset(void)
 {
 	// stop counter
-	TCCR1B = TMR1_STOP;
+	TMR1_stop();
 
 	// reset counter
-	TCNT1L = 0x00;
-	TCNT1H = 0x00;
+	TCNT1 = 0x0000;
 }
+
 
 void TMR1_start(void)
 {
-	// start by applying configuration
-	TCCR1B = TMR1.prescaler;
+	// start by applying prescaler configuration
+	TCCR1B = (TCCR1B & ~(_BV(CS12) | _BV(CS11) | _BV(CS10))) | (TMR1.prescaler & (_BV(CS12) | _BV(CS11) | _BV(CS10)));
 }
+
 
 void TMR1_stop(void)
 {
 	// stop by applying 0 prescaler
-	TCCR1B = TMR1_STOP;
+	TCCR1B = (TCCR1B & ~(_BV(CS12) | _BV(CS11) | _BV(CS10))) | (TMR1_STOP & (_BV(CS12) | _BV(CS11) | _BV(CS10)));
 }
+
 
 u16 TMR1_get(void)
 {
 	return (TCNT1L << 0) | ((u16)TCNT1H << 8);
 }
+
 
 void TMR1_compare_set(tmr1_chan_t chan, u16 val)
 {
@@ -152,6 +157,7 @@ void TMR1_compare_set(tmr1_chan_t chan, u16 val)
 		break;
 	}
 }
+
 
 u16 TMR1_compare_get(tmr1_chan_t chan)
 {

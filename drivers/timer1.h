@@ -47,46 +47,77 @@ typedef enum {
 // waveform generation mode
 //
 typedef enum {
-	TMR1_WGM_NORMAL,	// normal overflow on 0xff
-	TMR1_WGM_PWM,		// pwm
-	TMR1_WGM_CTC,		// clear timer on compare, reset on compare value
-	TMR1_WGM_FASTPWM,	// fast pwm
+	TMR1_WGM_NORMAL,		// normal overflow on 0xffff
+	TMR1_WGM_PWM_PC8,		// PWM, phase correct 8-bit
+	TMR1_WGM_PWM_PC9,		// PWM, phase correct 9-bit
+	TMR1_WGM_PWM_PC10,		// PWM, phase correct 10-bit
+	TMR1_WGM_CTC_OCR1A,		// clear timer on compare, reset on compare value
+	TMR1_WGM_FAST_PWM8,		// fast PWM 8-bit
+	TMR1_WGM_FAST_PWM9,		// fast PWM 9-bit
+	TMR1_WGM_FAST_PWM10,	// fast PWM 10-bit
+	TMR1_WGM_PWM_PFC_ICR,	// PWM, phase and frequency correct TOP = ICR1
+	TMR1_WGM_PWM_PFC_OCR,	// PWM, phase and frequency correct TOP = OCR1A
+	TMR1_WGM_PWM_PC_ICR,	// PWM, phase correct TOP = ICR1
+	TMR1_WGM_PWM_PC_OCR,	// PWM, phase correct TOP = OCR1A
+	TMR1_WGM_CTC_ICR1,		// clear timer on compare, reset on compare value
+	TMR1_WGM_RESERVED,
+	TMR1_WGM_FAST_PWM_ICR1,	// fast PWM TOP = ICR1
+	TMR1_WGM_FAST_PWM_OCR1A,// fast PWM TOP = OCR1A
 } tmr1_wgm_t;
+
+// compare output mode
+//
+typedef enum {
+	COM1AB_0000,
+	COM1AB_0001,
+	COM1AB_0010,
+	COM1AB_0011,
+	COM1AB_0100,
+	COM1AB_0101,
+	COM1AB_0110,
+	COM1AB_0111,
+	COM1AB_1000,
+	COM1AB_1001,
+	COM1AB_1010,
+	COM1AB_1011,
+	COM1AB_1100,
+	COM1AB_1101,
+	COM1AB_1110,
+	COM1AB_1111,
+} tmr1_cmp_out_md_t;
 
 // prescaler values
 // TODO
 //
-//  internal | timer1    | overflow
-//  clock (*)| prescaler | time
-// ----------+-----------+----------
-//   125 ns  |    /1     |  0.032 ms
-//   125 ns  |    /8     |  0.256 ms
-//   125 ns  |    /32    |  1.024 ms
-//   125 ns  |    /64    |  2.048 ms
-//   125 ns  |    /128   |  4.096 ms
-//   125 ns  |    /256   |  8.192 ms
-//   125 ns  |    /1024  | 32.768 ms
-// (*) 125 ns <=> 8MHz
+//  timer1    | overflow   | overflow
+//  prescaler | time 8MHz  | time 16MHz
+// -----------+------------+-----------
+//     /1     |   2.048 ms |   4.096 ms
+//     /8     |  16.384 ms |  32.768 ms
+//     /64    | 131.072 ms | 262.144 ms
+//     /256   | 524.288 ms |   1.048  s
+//     /1024  |   2.097  s |   4.192  s
+// MHz => T = 125 ns
+// 16MHz => T = 62.5 ns
 
 typedef enum {
 	TMR1_STOP,
 	TMR1_PRESCALER_1,
 	TMR1_PRESCALER_8,
-	TMR1_PRESCALER_32,
 	TMR1_PRESCALER_64,
-	TMR1_PRESCALER_128,
 	TMR1_PRESCALER_256,
-	TMR1_PRESCALER_1024
+	TMR1_PRESCALER_1024,
+	TMR1_PRESCALER_T1_FALL,
+	TMR1_PRESCALER_T1_RISE,
 } tmr1_prescaler_t;
 
 // init the timer:
 // - to generate or not an overflow interrupt,
 // - with a resolution,
-// - a comparaison value (let it 0 if useless),
-// - and to call a function if provided on oveflow
+// - in a mode
+// - and to call a function if provided on overflow
 //
-// only OCRA is used right now
-extern void TMR1_init(tmr1_int_mode_t int_mode, tmr1_prescaler_t prescaler, tmr1_wgm_t wgm, void (*call_back)(tmr1_chan_t chan, void* misc), void* misc);
+extern void TMR1_init(tmr1_int_mode_t int_mode, tmr1_prescaler_t prescaler, tmr1_wgm_t wgm, tmr1_cmp_out_md_t cmp_md, void (*call_back)(tmr1_chan_t chan, void* misc), void* misc);
 
 // reset the timer to 0
 //
