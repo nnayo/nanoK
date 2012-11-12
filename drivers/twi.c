@@ -525,6 +525,11 @@ void TWI_init(void(*call_back)(twi_state_t state, u8 nb_data, void* misc), void*
 	// switch off TWI interface
 	TWCR = 0x00;
 
+	// disable internal pull-ups of SDA and SCL (PC4 and PC5)
+	MCUCR |= _BV(PUD);
+	DDRC &= ~( _BV(DDC4) | _BV(DDC5) );
+	PORTC &= ~( _BV(PORTC4) | _BV(PORTC5) );
+
 	// bit rate 100k
 	// prescaler = 1
 	TWSR = TWI_PRESCALER_1;
