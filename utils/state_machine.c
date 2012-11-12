@@ -4,33 +4,39 @@
 // private functions
 //
 
-static void* STM_state_get_action(stm_state_t* st)
+static void* STM_state_get_action(const stm_state_t* st)
 {
-	return st->action;
+	return (void*)pgm_read_word(&st->action);
 }
 
 
-static void* STM_state_get_transition(stm_state_t* st)
+static const struct stm_transition* STM_state_get_transition(const stm_state_t* st)
 {
-	return st->transition;
+	return (const struct stm_transition*)pgm_read_word(&st->transition);
 }
 
 
-static stm_state_t* STM_transition_get_state(stm_transition_t* tr)
+static void* STM_state_get_args(const stm_state_t* st)
 {
-	return tr->st;
+	return (void*)pgm_read_word(&st->args);
 }
 
 
-static stm_event_t STM_transition_get_event(stm_transition_t* tr)
+static const stm_state_t* STM_transition_get_state(const stm_transition_t* tr)
 {
-	return tr->ev;
+	return (const stm_state_t*)pgm_read_word(&tr->st);
 }
 
 
-static stm_transition_t* STM_transition_get_transition(stm_transition_t* tr)
+static stm_event_t STM_transition_get_event(const stm_transition_t* tr)
 {
-	return tr->tr;
+	return (stm_event_t)pgm_read_byte(&tr->ev);
+}
+
+
+static const stm_transition_t* STM_transition_get_transition(const stm_transition_t* tr)
+{
+	return (const stm_transition_t*)pgm_read_word(&tr->tr);
 }
 
 
@@ -39,7 +45,7 @@ static stm_transition_t* STM_transition_get_transition(stm_transition_t* tr)
 //
 
 // initialize the given state machine
-u8 STM_init(stm_t* stm, stm_state_t* st)
+u8 STM_init(stm_t* stm, const stm_state_t* st)
 {
 	// if the state machine doesn't exist
 	if ( stm == NULL ) {
@@ -53,7 +59,10 @@ u8 STM_init(stm_t* stm, stm_state_t* st)
 		return KO;
 	}
 
-	stm->state = st;
+	stm->state = (stm_state_t*)st;
+	PT_INIT(&stm->pt);
+	stm->args = STM_state_get_args(stm->state);
+	stm->thread = STM_state_get_action(st);
 
 	return OK;
 }
@@ -67,7 +76,7 @@ void STM_run(stm_t* stm)
 
 
 // post an event to the state machine
-u8 STM_event(stm_t* stm, stm_event_t ev)
+u8 STM_event(stm_t* stm, const stm_event_t ev)
 {
 	// if not valid state machine
 	if ( stm == NULL ) {
@@ -76,17 +85,17 @@ u8 STM_event(stm_t* stm, stm_event_t ev)
 	}
 
 	// for each transition from the current state
-	for ( stm_transition_t* tr = STM_state_get_transition(stm->state); tr != NULL; tr = STM_transition_get_transition(tr) ) {
+	for ( const stm_transition_t* tr = STM_state_get_transition(stm->state); tr != NULL; tr = STM_transition_get_transition(tr) ) {
 		// if the transition is valid
 		if ( ev == STM_transition_get_event(tr) ) {
 			// transit
-			stm->state = STM_transition_get_state(tr);
+			stm->state = (stm_state_t*)STM_transition_get_state(tr);
 
 			// do the associated action
 			u8 (*action)(pt_t*, void*) = STM_state_get_action(stm->state);
 			if ( action != NULL ) {
 				PT_INIT(&stm->pt);
-				stm->args = STM_state_get_action(stm->state);
+				stm->args = STM_state_get_args(stm->state);
 				stm->thread = action;
 			}
 
