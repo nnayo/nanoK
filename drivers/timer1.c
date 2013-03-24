@@ -136,7 +136,7 @@ void TMR1_stop(void)
 
 u16 TMR1_get(void)
 {
-	return (TCNT1L << 0) | ((u16)TCNT1H << 8);
+	return TCNT1;
 }
 
 
