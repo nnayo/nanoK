@@ -133,5 +133,10 @@ void TMR2_stop(void)
 
 u8 TMR2_get_value(void)
 {
-	return TCNT2;
+	u8 sreg = SREG;
+	cli();
+	u16 tmp = TCNT2;
+
+	SREG = sreg;
+	return tmp;
 }

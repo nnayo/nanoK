@@ -136,7 +136,12 @@ void TMR1_stop(void)
 
 u16 TMR1_get(void)
 {
-	return TCNT1;
+	u8 sreg = SREG;
+	cli();
+	u16 cnt = TCNT1;
+
+	SREG = sreg;
+	return cnt;
 }
 
 
