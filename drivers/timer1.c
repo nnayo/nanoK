@@ -148,14 +148,16 @@ u16 TMR1_get(void)
 void TMR1_compare_set(tmr1_chan_t chan, u16 val)
 {
 	switch (chan) {
+	case TMR1_CAPT:
+		ICR1 = val;
+		break;
+
 	case TMR1_A:
-		OCR1AH = (val & 0xff00) >> 8;
-		OCR1AL = (val & 0x00ff) >> 0;
+		OCR1A = val;
 		break;
 
 	case TMR1_B:
-		OCR1BH = (val & 0xff00) >> 8;
-		OCR1BL = (val & 0x00ff) >> 0;
+		OCR1B = val;
 		break;
 
 	default:
@@ -169,14 +171,16 @@ u16 TMR1_compare_get(tmr1_chan_t chan)
 	u16 val;
 
 	switch (chan) {
+	case TMR1_CAPT:
+		val = ICR1;
+		break;
+
 	case TMR1_A:
-		val = OCR1AL;
-		val |= (u16)OCR1AH << 8;
+		val = OCR1A;
 		break;
 
 	case TMR1_B:
-		val = OCR1BL;
-		val |= (u16)OCR1BH << 8;
+		val = OCR1B;
 		break;
 
 	default:
