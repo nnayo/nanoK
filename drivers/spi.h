@@ -67,8 +67,11 @@ extern void SPI_call_back_set(void (*call_back)(spi_state_t st, void* misc), voi
 // transmit and receive data as a master
 extern u8 SPI_master(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len);
 
-// transmit and receive data as a master in blocking mode
-extern u8 SPI_master_blocking(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len);
+// when using the default call-back, call this function to know if the transfert is done
+extern u8 SPI_is_fini(void);
+
+// when using the default call-back, call this function to know if the transfert is OK
+extern u8 SPI_is_ok(void);
 
 // receive data as a slave
 extern u8 SPI_slave(u8* rx_buf, u8 rx_len);
