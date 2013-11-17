@@ -1,12 +1,12 @@
 import os
 
-MCU_TARGET      = 'atmega328p'
-OPTIMIZE        = '-Os -mcall-prologues -fshort-enums -std=c99 '
+MCU_TARGET	= 'atmega328p'
+OPTIMIZE	= '-Os -mcall-prologues -fshort-enums -std=c99 '
 includes	= ['.', 'utils', 'drivers', 'externals']
-CFLAGS		= '-g -Wall ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
+CFLAGS		= '-g -Wall -Wextra ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
 
 env = Environment(
-        ENV = os.environ,       \
+	ENV = os.environ,       \
 	CC = 'avr-gcc',		\
 	AR = 'avr-ar',		\
 	CFLAGS = CFLAGS,	\
