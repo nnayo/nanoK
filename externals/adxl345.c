@@ -52,7 +52,9 @@ u8 ADXL_init(void)
 
 	// read the device ID
 	tx_buf[0] = ADXL_READ | DEVID;
-	SPI_master_blocking(tx_buf, 1, rx_buf, 2);
+	SPI_master(tx_buf, 1, rx_buf, 2);
+	while ( ! SPI_is_fini() )
+		;
 
 	// check if device is the ADXL345
 	if ( rx_buf[1] != DEVID_VALUE ) {
@@ -62,7 +64,9 @@ u8 ADXL_init(void)
 	// set the measure bit in power control to start acquisitions
 	tx_buf[0] = ADXL_WRITE | POWER_CTL;
 	tx_buf[1] = (1 << 3);
-	SPI_master_blocking(tx_buf, 2, rx_buf, 0);
+	SPI_master(tx_buf, 2, rx_buf, 0);
+	while ( ! SPI_is_fini() )
+		;
 
 	return OK;
 }

@@ -89,8 +89,11 @@ static void W5100_write(u16 addr, u8 data)
 	w_tx.addr = addr;
 	w_tx.data = data;
 
-	SPI_master_blocking((u8*)&w_tx, sizeof(w_tx), (u8*)&w_rx, sizeof(w_rx));
+	SPI_master((u8*)&w_tx, sizeof(w_tx), (u8*)&w_rx, sizeof(w_rx));
 	// if transfer is successful, w_rx shall hold {0x00, 0x01, 0x02, 0x03}
+	
+	while ( !SPI_is_fini() )
+		;
 }
 
 
@@ -121,8 +124,11 @@ static u8 W5100_read(u16 addr)
 	w_tx.addr = addr;
 	w_tx.data = 0xff;
 
-	SPI_master_blocking((u8*)&w_tx, sizeof(w_tx), (u8*)&w_rx, sizeof(w_rx));
+	SPI_master((u8*)&w_tx, sizeof(w_tx), (u8*)&w_rx, sizeof(w_rx));
 	// if transfer is successful, w_rx shall hold {0x00, 0x01, 0x02, 'read data'}
+	
+	while( !SPI_is_fini() )
+		;
 
 	return w_rx.data;
 }
