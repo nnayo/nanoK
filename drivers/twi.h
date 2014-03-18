@@ -176,7 +176,6 @@ extern u8 TWI_sl_rx(u8 len, u8* data);
 //
 // - twi_sl_tx_end:
 // 	transmission as slave finished
-// 	-> stop communication:	TWI_stop()
 // 	-> try sending data:	TWI_ms_tx()
 // 	-> try reading data:	TWI_ms_rx()
 //

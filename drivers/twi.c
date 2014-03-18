@@ -95,10 +95,15 @@ static u8 TWI_read(void)
 	return TWDR;
 }
 
-static void TWI_write(u8 data)
+static void TWI_write(u8 data, u8 ack)
 {
 	TWDR = data;
-	TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE);
+	if (ack) {
+		TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
+	}
+	else {
+		TWCR = _BV(TWINT) | _BV(TWEN) | _BV(TWIE);
+	}
 }
 
 static void TWI_call_back_call(twi_state_t state)
@@ -170,7 +175,7 @@ ISR(TWI_vect)
 		TWI.nb_data = 0;
 		
 		// send slave addr
-		TWI_write(TWI.addr);
+		TWI_write(TWI.addr, OK);
 		return;
 
 	// -----------------------------------------------------------------------
@@ -182,7 +187,7 @@ ISR(TWI_vect)
 		if ( TWI.nb_data < TWI.ms_buf_len ) {
 			buf = TWI.nb_data;
 			TWI.nb_data++;
-			TWI_write( *(TWI.ms_buf + buf) );
+			TWI_write( *(TWI.ms_buf + buf), OK);
 		}
 		// else transmission is finish
 		else {
@@ -211,7 +216,7 @@ ISR(TWI_vect)
 		if ( TWI.nb_data < TWI.ms_buf_len ) {
 			buf = TWI.nb_data;
 			TWI.nb_data++;
-			TWI_write(*(TWI.ms_buf + buf));
+			TWI_write( *(TWI.ms_buf + buf), OK);
 		}
 		// else transmission is finish
 		else {
@@ -321,12 +326,10 @@ ISR(TWI_vect)
 		if ( TWI.nb_data < TWI.sl_buf_len ) {
 			buf = TWI.nb_data;
 			TWI.nb_data++;
-			TWI_write( *(TWI.sl_buf + buf) );
-			TWI_ack();
+			TWI_write( *(TWI.sl_buf + buf), OK);
 		}
 		else {	// send dummy value
-			TWI_write(0x33);
-			TWI_nack();
+			TWI_write(0x33, KO);
 		}
 
 		return;
@@ -338,12 +341,10 @@ ISR(TWI_vect)
 		if ( TWI.nb_data < TWI.sl_buf_len ) {
 			buf = TWI.nb_data;
 			TWI.nb_data++;
-			TWI_write( *(TWI.sl_buf + buf) );
-			TWI_ack();
+			TWI_write( *(TWI.sl_buf + buf), OK);
 		}
 		else {	// send dummy value
-			TWI_write(0x33);
-			TWI_nack();
+			TWI_write(0x33, KO);
 		}
 
 		return;
@@ -363,6 +364,7 @@ ISR(TWI_vect)
 		else {
 			// give up bus control, wait for next start
 			TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
+			TWI.state = TWI_IDLE;
 		}
 
 		return;
@@ -476,7 +478,10 @@ ISR(TWI_vect)
 	_TW_SR_STOP:			// 0xa0 : stop or restart received
 		// the previous transfer as slace receiver (general call or not)
 		// is completely finished
-		// and it has already been notified to the application
+		if (TWI.state == TWI_SL_RX_BEGIN)
+            TWI_call_back_call(TWI_SL_RX_END);
+        else
+            TWI_call_back_call(TWI_GENCALL_END);
 
 		// but if we have data to send or read as master
 		// try to generate a restart
@@ -484,17 +489,17 @@ ISR(TWI_vect)
 			// generate a restart
 			TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE) | _BV(TWSTA);
 		}
-		else {
-			// give up bus control, wait for next start
-			TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
-		}
 
 		return;
 
 	// -----------------------------------------------------------------------
 	// Error cases
-	_TW_NO_INFO:			// 0xf8 : no relevant information, should never happened in INT mode
-		// if it should never happen, it WILL NEVER HAPPEN
+	_TW_NO_INFO:			// 0xf8 : no relevant information
+		// back to idle state: re-enable interface
+		TWCR = _BV(TWEA) | _BV(TWINT) | _BV(TWEN)  | _BV(TWIE);
+
+		// signal idle mode
+		TWI_call_back_call(TWI_IDLE);
 
 		return;
 
@@ -550,7 +555,8 @@ void TWI_init(void(*call_back)(twi_state_t state, u8 nb_data, void* misc), void*
 	TWI.misc = misc;
 
 	// enable automatic ACK bit and TWI interface in interrupt mode
-	TWCR = _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
+	// resetting any previous interrupt
+	TWCR = _BV(TWEA) | _BV(TWEN) | _BV(TWIE) | _BV(TWINT);
 
 	// disable address recognition
 	TWAR = 0;
@@ -585,17 +591,16 @@ void TWI_gen_call(u8 gen_call)
 void TWI_stop(void)
 {
 	// if hard is not already IDLE
-	if (TW_STATUS != 0xf8) {
+	if (TW_STATUS != TW_NO_INFO) {
 		// try to generate a STOP
 		TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWSTO) | _BV(TWIE);
 
-		// in master mode, when the STOP is executed
-		// on the bus, the TWSTO bit is cleared
-		// automatically.
+		// in master mode, when the STOP is executed on the bus,
+		// the TWSTO bit is cleared automatically.
 	}
 
-	// reset engine state to IDLE
-	TWI.state = TWI_IDLE;
+    // reset engine state to IDLE
+    TWI.state = TWI_IDLE;
 }
 
 
@@ -604,6 +609,10 @@ u8 TWI_ms_tx(u8 adr, u8 len, u8* data)
 	// check if TWI is idle
 	if ( (TWI.state != TWI_IDLE) && (TWI.state != TWI_ERROR) )
 		return KO;
+
+    // check if bus is stopped
+    if (TWCR & _BV(TWSTO))
+        return KO;
 
 	// reset TWI state
 	TWI.state = TWI_MS_TX_BEGIN;
@@ -627,6 +636,10 @@ u8 TWI_ms_rx(u8 adr, u8 len, u8* data)
 	// check if TWI is idle
 	if ( (TWI.state != TWI_IDLE) && (TWI.state != TWI_ERROR) )
 		return KO;
+
+    // check if bus is stopped
+    if (TWCR & _BV(TWSTO))
+        return KO;
 
 	// reset TWI state
 	TWI.state = TWI_MS_RX_BEGIN;
