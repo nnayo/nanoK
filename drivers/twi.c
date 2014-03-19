@@ -590,6 +590,10 @@ void TWI_gen_call(u8 gen_call)
 
 void TWI_stop(void)
 {
+	if (TWI.state == TWI_SL_RX_END || TWI.state == TWI_GENCALL_END) {
+		TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
+	}
+
 	// if hard is not already IDLE
 	if (TW_STATUS != TW_NO_INFO) {
 		// try to generate a STOP
