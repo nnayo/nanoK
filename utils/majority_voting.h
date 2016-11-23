@@ -25,7 +25,7 @@ enum voter_origin {
         VOTER_OTHER1,
 };
 
-typedef void (*voter_tx)(void* data, u8 len);
+typedef void (*voter_tx)(const void* const data, const u8 len);
 typedef u32 (*voter_time)(void);
 
 

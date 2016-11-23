@@ -82,11 +82,24 @@ static enum voter_result mjv_vote_check_3(struct voter* const voter)
                 self->data_len = other0->data_len;
         }
 
+        // compute what is the earlier packet time
+        u32 earlier = self->timestamp;
+        if (other0->timestamp < earlier)
+                earlier = other0->timestamp;
+        if (other1->timestamp < earlier)
+                earlier = other1->timestamp;
+
         // every packet is the same
         if (s_o0 == VOTER_2_ON_2
                         && s_o1 == VOTER_2_ON_2
-                        && o0_o1 == VOTER_2_ON_2)
+                        && o0_o1 == VOTER_2_ON_2) {
+                // only the earlier sender is allowed
+                // to call the majority function
+                if (self->timestamp == earlier && voter->maj)
+                        voter->maj(self->data, self->data_len);
+
                 return VOTER_3_ON_3;
+        }
 
         // all packets are different
         if (s_o0 != VOTER_2_ON_2
@@ -95,6 +108,11 @@ static enum voter_result mjv_vote_check_3(struct voter* const voter)
                 return VOTER_1_ON_3;
 
         // only remains the case in-between
+        // only the earlier sender is allowed
+        // to call the majority function
+        if (self->timestamp == earlier && voter->maj)
+                voter->maj(self->data, self->data_len);
+
         return VOTER_2_ON_3;
 }
 
@@ -133,11 +151,23 @@ static enum voter_result mjv_vote_check(struct voter* const voter)
                 return VOTER_1_ON_1;
 
         // only 1 packet received (either 0 or 1)
-        if (!other0_cond)
-                return mjv_vote_check_2(self, other1);
+        if (!other0_cond) {
+                enum voter_result res = mjv_vote_check_2(self, other1);
 
-        if (!other1_cond)
-                return mjv_vote_check_2(self, other0);
+                if (self->timestamp < other1->timestamp && voter->maj)
+                        voter->maj(self->data, self->data_len);
+
+                return res;
+        }
+
+        if (!other1_cond) {
+                enum voter_result res = mjv_vote_check_2(self, other0);
+
+                if (self->timestamp < other0->timestamp && voter->maj)
+                        voter->maj(self->data, self->data_len);
+
+                return res;
+        }
 
         // both packets received
         return mjv_vote_check_3(voter);
