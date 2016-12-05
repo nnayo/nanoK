@@ -41,7 +41,7 @@ static struct {
 	u8* data;	// pointer to buffer
 	u8 len;		// buffer length
 	u8 n;		// index
-} EEP;
+} eep;
 
 
 //------------------------------
@@ -52,15 +52,15 @@ ISR(EE_READY_vect)
 {
 	// one more byte written
 	// so proceed to next one
-	EEP.n++;
+	eep.n++;
 
 	// if there is still some place in the buffer
-	if ( EEP.n < EEP.len ) {
+	if ( eep.n < eep.len ) {
 		// write next byte
-		EEP.addr++;
-		EEAR = EEP.addr;
-		EEP.data++;
-		EEDR = *EEP.data;
+		eep.addr++;
+		EEAR = eep.addr;
+		eep.data++;
+		EEDR = *eep.data;
 		EECR |= _BV(EEMPE);
 		EECR |= _BV(EEPE);
 	}
@@ -77,11 +77,11 @@ ISR(EE_READY_vect)
 //
 
 // EEPROM driver initialization
-void EEP_init(void)
+void nnk_eep_init(void)
 {
 	// reset internals
-	EEP.n = 0;
-	EEP.data = NULL;
+	eep.n = 0;
+	eep.data = NULL;
 
 	// erase and write mode
 	EECR = 0;
@@ -89,7 +89,7 @@ void EEP_init(void)
 
 
 // read len byte(s) from EEPROM address addr and copy them in data
-u8 EEP_read(u16 addr, u8* data, u8 len)
+u8 nnk_eep_read(u16 addr, u8* data, u8 len)
 {
 	u8 i;
 
@@ -116,19 +116,19 @@ u8 EEP_read(u16 addr, u8* data, u8 len)
 
 
 // write len byte(s) to EEPROM address addr from data
-u8 EEP_write(u16 addr, u8* data, u8 len)
+u8 nnk_eep_write(u16 addr, u8* data, u8 len)
 {
 	// if EEPROM is busy or a write is running
-	if ( (EECR & _BV(EEPE)) || (EEP.data != NULL) ) {
+	if ( (EECR & _BV(EEPE)) || (eep.data != NULL) ) {
 		// it can't be written
 		return KO;
 	}
 
 	// save data buffer address and reset index
-	EEP.addr = addr;
-	EEP.data = data;
-	EEP.len = len;
-	EEP.n = 0;
+	eep.addr = addr;
+	eep.data = data;
+	eep.len = len;
+	eep.n = 0;
 
 	// start first byte write
 	EEAR = addr;
@@ -142,10 +142,10 @@ u8 EEP_write(u16 addr, u8* data, u8 len)
 	return OK;
 }
 
-u8 EEP_is_fini(void)
+u8 nnk_eep_is_fini(void)
 {
 	// while writing
-	if ( EEP.n < EEP.len ) {
+	if ( eep.n < eep.len ) {
 		// it is not finished!!!!
 		return KO;
 	}

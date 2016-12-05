@@ -26,15 +26,15 @@
 
 
 // EEPROM driver initialization
-extern void eep_init(void);
+extern void nnk_eep_init(void);
 
 // read len byte(s) from EEPROM address addr and copy them in data
-extern u8 eep_read(u16 addr, u8* data, u8 len);
+extern u8 nnk_eep_read(u16 addr, u8* data, u8 len);
 
 // write len byte(s) to EEPROM address addr from data
-extern u8 eep_write(u16 addr, u8* data, u8 len);
+extern u8 nnk_eep_write(u16 addr, u8* data, u8 len);
 
 // check if eeprom write has ended
-extern u8 eep_is_fini(void);
+extern u8 nnk_eep_is_fini(void);
 
 #endif	// __EEPROM_H__
