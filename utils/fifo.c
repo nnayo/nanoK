@@ -27,7 +27,7 @@
 #include <string.h>		// memcpy()
 
 
-void FIFO_init(fifo_t *f, void* buf, u16 nb_elem, u16 elem_size)
+void nnk_fifo_init(struct nnk_fifo *f, void* buf, u16 nb_elem, u16 elem_size)
 {
 	// set the internals thanks to the provided data
 	f->lng = nb_elem;
@@ -37,7 +37,7 @@ void FIFO_init(fifo_t *f, void* buf, u16 nb_elem, u16 elem_size)
 }
 
 
-u8 FIFO_put(fifo_t *f, void* elem)
+u8 nnk_fifo_put(struct nnk_fifo *f, void* elem)
 {
 	u8 sreg = SREG;
 	cli();
@@ -62,7 +62,7 @@ u8 FIFO_put(fifo_t *f, void* elem)
 }
 
 
-u8 FIFO_get(fifo_t *f, void* elem)
+u8 nnk_fifo_get(struct nnk_fifo *f, void* elem)
 {
 	u8 sreg = SREG;
 	cli();
@@ -87,7 +87,7 @@ u8 FIFO_get(fifo_t *f, void* elem)
 }
 
 
-u8 FIFO_unget(fifo_t* f, void* elem)
+u8 nnk_fifo_unget(struct nnk_fifo* f, void* elem)
 {
 	u8 sreg = SREG;
 	cli();
@@ -114,13 +114,13 @@ u8 FIFO_unget(fifo_t* f, void* elem)
 }
 
 
-u16 FIFO_free(fifo_t* f)
+u16 nnk_fifo_free(struct nnk_fifo* f)
 {
 	return (f->lng - f->nb);
 }
 
 
-u16 FIFO_full(fifo_t* f)
+u16 nnk_fifo_full(struct nnk_fifo* f)
 {
 	return f->nb;
 }

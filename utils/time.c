@@ -35,8 +35,8 @@
 static struct {
 	u32 time;		// current time
 	u32 incr;		// increment step
-	u32 (*adjust)(void);	// if provided, more precision for TIME_get()
-} TIME;
+	u32 (*adjust)(void);	// if provided, more precision for nnk_time_get()
+} time;
 
 
 // ---------------------------------------
@@ -44,54 +44,54 @@ static struct {
 //
 
 // init the internals of TIME
-void TIME_init(u32(*adjust)(void))
+void nnk_time_init(u32(*adjust)(void))
 {
-	TIME.time = 0;
-	TIME.incr = 0;
-	TIME.adjust = adjust;
+	time.time = 0;
+	time.incr = 0;
+	time.adjust = adjust;
 }
 
 
-// set the TIME increment.
-void TIME_set_incr(u32 incr)
+// set the time increment.
+void nnk_time_set_incr(u32 incr)
 {
-	TIME.incr = incr;
+	time.incr = incr;
 }
 
 
-// get the TIME increment.
-u32 TIME_get_incr(void)
+// get the time increment.
+u32 nnk_time_get_incr(void)
 {
-	return TIME.incr;
+	return time.incr;
 }
 
 
-// increment the TIME
+// increment the time
 // the call to this function is on the responsability of the user
 // it is preferably done in the nanoK hook.
-void TIME_incr(void)
+void nnk_time_incr(void)
 {
-	TIME.time += TIME.incr;
+	time.time += time.incr;
 }
 
 
-// get current value of TIME
-u32 TIME_get(void)
+// get current value of time
+u32 nnk_time_get(void)
 {
-	return TIME.time;
+	return time.time;
 }
 
 
-// get a more accurate current value of TIME
-u32 TIME_get_precise(void)
+// get a more accurate current value of time
+u32 nnk_time_get_precise(void)
 {
-	u32 time;
+	u32 t;
 
-	time = TIME.time;
+	t = time.time;
 
-	if (TIME.adjust) {
-		time += TIME.adjust();
+	if (time.adjust) {
+		t += time.adjust();
 	}
 
-	return time;
+	return t;
 }

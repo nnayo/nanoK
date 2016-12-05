@@ -40,9 +40,9 @@ static struct {
 
 	// fifoes and their associated buffers
 	u8 rx_buf[RS_RX_LEN];
-	fifo_t rx_fifo;
+	struct nnk_fifo rx_fifo;
 	u8 tx_buf[RS_TX_LEN];
-	fifo_t tx_fifo;
+	struct nnk_fifo tx_fifo;
 
 	// buffer for floating point operations
 	u8 fp_buf[FP_BUF_LEN];
@@ -79,7 +79,7 @@ ISR(USART_RX_vect)
 		RS.DOR_cnt++;
 
 		buf = UDR0;
-		if (FIFO_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
+		if (nnk_fifo_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
 			RS.rx_ovfl_cnt++;		// on error, inc counter
 	}
 
@@ -93,7 +93,7 @@ ISR(USART_RX_vect)
 	}
 
 	buf = UDR0;
-	if (FIFO_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
+	if (nnk_fifo_put(&RS.rx_fifo, &buf) == KO)	// put rxed char in fifo
 		RS.rx_ovfl_cnt++;		// on error, inc counter
 }
 
@@ -102,7 +102,7 @@ ISR(USART_UDRE_vect)
 {
 	u8 buf;
 
-	if ( FIFO_get(&RS.tx_fifo, &buf) == OK)
+	if ( nnk_fifo_get(&RS.tx_fifo, &buf) == OK)
 		UDR0 = buf;		// get a char from fifo is available
 	else
 		UCSR0B &= ~_BV(UDRIE0);	// no more data to send, stop Tx interrupt
@@ -110,14 +110,14 @@ ISR(USART_UDRE_vect)
 
 
 // write one byte
-static int RS_put(char data, FILE* f)
+static int nnk_rs_put(char data, FILE* f)
 {
 	(void)f;
 
 	// if there is some empty space in the Tx fifo
-	if ( FIFO_free(&RS.tx_fifo) ) {
+	if ( nnk_fifo_free(&RS.tx_fifo) ) {
 		// add the new character to the Tx fifo
-		FIFO_put(&RS.tx_fifo, &data);
+		nnk_fifo_put(&RS.tx_fifo, &data);
 
 		// (re-)enable UDRE interrupt
 		UCSR0B |= _BV(UDRIE0);
@@ -127,7 +127,7 @@ static int RS_put(char data, FILE* f)
 		UCSR0B |= _BV(UDRIE0);
 
 		// and block as long as there is no empty space in the Tx fifo
-		while ( FIFO_put(&RS.tx_fifo, &data) != OK ) {
+		while ( nnk_fifo_put(&RS.tx_fifo, &data) != OK ) {
 		}
 	}
 
@@ -136,14 +136,14 @@ static int RS_put(char data, FILE* f)
 
 
 // read one byte
-static int RS_get(FILE* f)
+static int nnk_rs_get(FILE* f)
 {
 	u8 buf;
 
 	(void)f;
 
 	// if no character in fifo, 
-	if ( FIFO_get(&(RS.rx_fifo), &buf) != OK )
+	if ( nnk_fifo_get(&(RS.rx_fifo), &buf) != OK )
 		return _FDEV_EOF;	// return End Of File
 	else
 		return (int)buf;	// return read data
@@ -155,7 +155,7 @@ static int RS_get(FILE* f)
 //
 
 // setup of the USART
-void RS_init(u8 baud)
+void nnk_rs_init(u8 baud)
 {
 	// set transmission speed
 	UBRR0H = 0;
@@ -168,11 +168,11 @@ void RS_init(u8 baud)
 	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
 
 	// fifoes init
-	FIFO_init(&RS.rx_fifo, RS.rx_buf, RS_RX_LEN, sizeof(u8));
-	FIFO_init(&RS.tx_fifo, RS.tx_buf, RS_TX_LEN, sizeof(u8));
+	nnk_fifo_init(&RS.rx_fifo, RS.rx_buf, RS_RX_LEN, sizeof(u8));
+	nnk_fifo_init(&RS.tx_fifo, RS.tx_buf, RS_TX_LEN, sizeof(u8));
 
 	// create the file
-	fdev_setup_stream(&RS.file, RS_put, RS_get, _FDEV_SETUP_RW);
+	fdev_setup_stream(&RS.file, nnk_rs_put, nnk_rs_get, _FDEV_SETUP_RW);
 	// manually add informations about floating point buffer
 	RS.file.buf = (char*) RS.fp_buf;
 	RS.file.size = FP_BUF_LEN;
@@ -183,7 +183,7 @@ void RS_init(u8 baud)
 }
 
 // return the values of Frame Error, Data OverRun and Parity Error counters
-void RS_cnt(u8* FE_cnt,	u8* DOR_cnt, u8* PE_cnt, u8* rx_ovfl_cnt)
+void nnk_rs_cnt(u8* FE_cnt,	u8* DOR_cnt, u8* PE_cnt, u8* rx_ovfl_cnt)
 {
 	*FE_cnt = RS.FE_cnt;
 	*DOR_cnt = RS.DOR_cnt;

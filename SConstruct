@@ -2,8 +2,8 @@ import os
 
 MCU_TARGET	= 'atmega328p'
 OPTIMIZE	= '-Os -mcall-prologues -fshort-enums -std=c99 '
-includes	= ['.', 'utils', 'drivers', 'externals']
-CFLAGS		= '-g -Wall -Wextra ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
+includes	= ['.', 'utils', 'drivers', ]
+CFLAGS		= '-g -Wall -Wextra -Werror ' + OPTIMIZE + '-mmcu=' + MCU_TARGET
 
 env = Environment(
 	ENV = os.environ,       \

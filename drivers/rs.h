@@ -53,11 +53,11 @@
 # define B250000	1
 # define B500000	0
 
-extern void RS_init(u8 baud);			// setup for USART
+extern void nnk_rs_init(u8 baud);		// setup for USART
 						// baud given using provided macro
 						// interrupt mode
 
-extern void RS_cnt(u8* FE_cnt,			// return the values of Frame Error
+extern void nnk_rs_cnt(u8* FE_cnt,		// return the values of Frame Error
 			u8* DOR_cnt,		// Data OverRun
 			u8* PE_cnt,		// Parity Error counters and
 			u8* rx_ovfl_cnt);	// rx fifo overflow counter

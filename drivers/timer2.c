@@ -33,7 +33,7 @@ static struct {
 	u8 prescaler;
 	void (*call_back)(void* misc);
 	void* misc;
-} TMR2;
+} tmr2;
 
 //-----------------------
 // private functions
@@ -42,8 +42,8 @@ static struct {
 ISR(TIMER2_OVF_vect)
 {
 	// call the provided call back if any
-	if ( TMR2.call_back != NULL )
-		(TMR2.call_back)(TMR2.misc);
+	if ( tmr2.call_back != NULL )
+		(tmr2.call_back)(tmr2.misc);
 	else
 		// stop by applying 0 prescaler
 		TCCR2B = TMR2_STOP;
@@ -52,8 +52,8 @@ ISR(TIMER2_OVF_vect)
 ISR(TIMER2_COMPA_vect)
 {
 	// call the provided call back if any
-	if ( TMR2.call_back != NULL )
-		(TMR2.call_back)(TMR2.misc);
+	if ( tmr2.call_back != NULL )
+		(tmr2.call_back)(tmr2.misc);
 	else
 		// stop by applying 0 prescaler
 		TCCR2B = TMR2_STOP;
@@ -64,13 +64,13 @@ ISR(TIMER2_COMPA_vect)
 // public functions
 //
 
-void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t wgm, u8 compare, void (*call_back)(void* misc), void* misc)
+void TMR2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* misc), void* misc)
 {
 	// stop counter
 	TCCR2B = TMR2_STOP;
 
 	// save configuration
-	TMR2.prescaler = prescaler;
+	tmr2.prescaler = prescaler;
 
 	// reset counter
 	TCNT2 = 0x00;
@@ -106,8 +106,8 @@ void TMR2_init(tmr2_int_mode_t int_mode, tmr2_prescaler_t prescaler, tmr2_wgm_t 
 	}
 
 	// set timeout call_back function
-	TMR2.call_back = call_back;
-	TMR2.misc = misc;
+	tmr2.call_back = call_back;
+	tmr2.misc = misc;
 }
 
 void TMR2_reset(void)
@@ -122,7 +122,7 @@ void TMR2_reset(void)
 void TMR2_start(void)
 {
 	// start by applying configuration
-	TCCR2B = TMR2.prescaler;
+	TCCR2B = tmr2.prescaler;
 }
 
 void TMR2_stop(void)

@@ -26,50 +26,50 @@
 # include "type_def.h"
 
 
-typedef struct {
+struct nnk_fifo {
 	int lng;	// elements buffer length
 	int nb;		// elements number
 	int elem_size;	// element size
 	void* donnees;	// pointer on the data buffer
 	void* in;	// insertion pointer
 	void* out;	// extraction pointer
-} fifo_t;
+};
 
 
 // init the FIFO
 // with a pointer to the data buffer
 // and the length in elements of the buffer
 //
-extern void FIFO_init(fifo_t* f, void* buf, u16 nb_elem, u16 elem_size);
+extern void nnk_fifo_init(struct nnk_fifo* f, void* buf, u16 nb_elem, u16 elem_size);
 
 
 // add an element to the given fifo
 // return OK if every thing ok else KO
 //
-extern u8 FIFO_put(fifo_t* f, void* elem);
+extern u8 nnk_fifo_put(struct nnk_fifo* f, void* elem);
 
 
 // get an element from the given fifo
 // return OK if every thing ok else KO
 // 
-extern u8 FIFO_get(fifo_t* f, void* elem);
+extern u8 nnk_fifo_get(struct nnk_fifo* f, void* elem);
 
 
 // put back an element to the given fifo
 // return OK if every thing ok else KO
 // 
-extern u8 FIFO_unget(fifo_t* f, void* elem);
+extern u8 nnk_fifo_unget(struct nnk_fifo* f, void* elem);
 
 
 // returns the free place in the given fifo
 // in term of elements
 //
-extern u16 FIFO_free(fifo_t* f);
+extern u16 nnk_fifo_free(struct nnk_fifo* f);
 
 
 // returns the place taken in the given fifo
 // in term of elements
 //
-extern u16 FIFO_full(fifo_t* f);
+extern u16 nnk_fifo_full(struct nnk_fifo* f);
 
 #endif

@@ -28,7 +28,7 @@
 # define TWI_FIRST_ADDR		0x01
 # define TWI_LAST_ADDR		0x7f
 
-typedef enum {
+enum nnk_twi_state {
 	TWI_IDLE,		// just idle
 	TWI_NO_SL,		// no slave at the given address
 	TWI_MS_RX_BEGIN,	// master mode, reception from slave beginning
@@ -42,7 +42,7 @@ typedef enum {
 	TWI_GENCALL_BEGIN,	// general call, reception from master beginning
 	TWI_GENCALL_END,	// general call, reception from master finished
 	TWI_ERROR		// error in the protocol or in the state machine
-} twi_state_t;	// automata states
+};	// automata states
 
 // init the TWI component
 //
@@ -73,25 +73,25 @@ typedef enum {
 // - state : current com state
 // - misc : extra parameter (up to your needs)
 //
-extern void TWI_init(void(*call_back)(twi_state_t state, u8 nb_data, void* misc), void* misc);
+extern void nnk_twi_init(void(*call_back)(enum nnk_twi_state state, u8 nb_data, void* misc), void* misc);
 
 // set the I2C address
 // setting the address to zero means setting the TWI as master
 // as it will respond only to general call if enabled.
 //
-extern void TWI_set_sl_addr(u8 sl_addr);
+extern void nnk_twi_sl_addr_set(u8 sl_addr);
 
 // get the I2C address
 //
-extern u8 TWI_get_sl_addr(void);
+extern u8 nnk_twi_sl_addr_get(void);
 
 // enable (TRUE) or disable (FALSE) the general call address recognition
 //
-extern void TWI_gen_call(u8 gen_call);
+extern void nnk_twi_gen_call(u8 gen_call);
 
 // shall be used only in the call_back function to stop the communication
 //
-extern void TWI_stop(void);
+extern void nnk_twi_stop(void);
 
 // master comm
 // 
@@ -107,8 +107,8 @@ extern void TWI_stop(void);
 //
 // if comm is impossible, it returns KO else OK
 //
-extern u8 TWI_ms_tx(u8 adr, u8 len, u8* data);
-extern u8 TWI_ms_rx(u8 adr, u8 len, u8* data);
+extern u8 nnk_twi_ms_tx(u8 adr, u8 len, u8* data);
+extern u8 nnk_twi_ms_rx(u8 adr, u8 len, u8* data);
 
 // slave comm
 //
@@ -120,80 +120,80 @@ extern u8 TWI_ms_rx(u8 adr, u8 len, u8* data);
 //
 // if comm is impossible, it returns KO else OK
 //
-extern u8 TWI_sl_tx(u8 len, u8* data);
-extern u8 TWI_sl_rx(u8 len, u8* data);
+extern u8 nnk_twi_sl_tx(u8 len, u8* data);
+extern u8 nnk_twi_sl_rx(u8 len, u8* data);
 
 // general call
 //
 // when addressed in general call,
 // it is only possible to receive data
-// so use TWI_sl_rx with same parameters
+// so use nnk_twi_sl_rx with same parameters
 //
 
 // more details on the requirements for the call back function
 //
-// what to do in the call_back is called upon the twi_state and your will.
+// what to do in the call_back is called upon the nnk_twi_state and your will.
 //
-// here are descripted all the possible cases depending on the twi_state
+// here are descripted all the possible cases depending on the nnk_twi_state
 //
-// - twi_idle:
+// - TWI_IDLE:
 // 	will never happened, it is just an internal state
 // 	-> nothing to do then!!!
 //
-// - twi_no_sl:
+// - TWI_NO_SL:
 // 	no slave at given address or no slave able to answer general call
-// 	-> stop communication:	TWI_stop()
-// 	-> retry sending data:	TWI_ms_tx()
-// 	-> retry reading data:	TWI_ms_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> retry sending data:	nnk_twi_ms_tx()
+// 	-> retry reading data:	nnk_twi_ms_rx()
 //
-// - twi_ms_rx_end:
+// - TWI_MS_RX_END:
 // 	reception as master finished
-// 	-> stop communication:	TWI_stop()
-// 	-> try sending data:	TWI_ms_tx()
-// 	-> try reading data:	TWI_ms_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> try sending data:	nnk_twi_ms_tx()
+// 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - twi_ms_tx_end:
+// - TWI_MS_TX_END:
 // 	transmission as master finished
-// 	-> stop communication:	TWI_stop()
-// 	-> try sending data:	TWI_ms_tx()
-// 	-> try reading data:	TWI_ms_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> try sending data:	nnk_twi_ms_tx()
+// 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - twi_sl_rx_begin:
+// - TWI_SL_RX_BEGIN:
 // 	reception as slave beginning (may be due to an arbitration lost)
-// 	-> stop communication:	TWI_stop()
-// 	-> accept reading data:	TWI_sl_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - twi_sl_rx_end:
+// - TWI_SL_RX_END:
 // 	reception as slave finished
-// 	-> stop communication:	TWI_stop()
-// 	-> try sending data:	TWI_ms_tx()
-// 	-> try reading data:	TWI_ms_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> try sending data:	nnk_twi_ms_tx()
+// 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - twi_sl_tx_begin:
+// - TWI_SL_TX_BEGIN:
 // 	transmission as slave beginning (may be due to an arbitration lost)
-// 	-> stop communication:	TWI_stop()
-// 	-> accept reading data:	TWI_sl_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - twi_sl_tx_end:
+// - TWI_SL_TX_END:
 // 	transmission as slave finished
-// 	-> try sending data:	TWI_ms_tx()
-// 	-> try reading data:	TWI_ms_rx()
+// 	-> try sending data:	nnk_twi_ms_tx()
+// 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - twi_gencall_begin:
+// - TWI_GENCALL_BEGIN:
 // 	reception as slave (in the context of a general call) beginning (may be due to an arbitration lost)
-// 	-> stop communication:	TWI_stop()
-// 	-> accept reading data:	TWI_sl_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - twi_gencall_end:
+// - TWI_GENCALL_END:
 // 	reception as slave (in the context of a general call) finished
-// 	-> stop communication:	TWI_stop()
-// 	-> try sending data:	TWI_ms_tx()
-// 	-> try reading data:	TWI_ms_rx()
+// 	-> stop communication:	nnk_twi_stop()
+// 	-> try sending data:	nnk_twi_ms_tx()
+// 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - twi_error:
+// - TWI_ERROR:
 // 	error in protocol at hardware level (probably)
 // 	nothing to do except trying to stop the current transfert
-// 	-> stop communication:	TWI_stop()
+// 	-> stop communication:	nnk_twi_stop()
 //
 
 #endif

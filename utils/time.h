@@ -36,33 +36,34 @@
 # include "type_def.h"
 
 
-# define TIME_1_MSEC	( (u32)10 )						// one milli-second
-# define TIME_1_SEC		( (u32)(1000 * TIME_1_MSEC) )	// one second
-# define TIME_MAX		( (u32)0xffffffff )				// max time value (11.93 hours)
+# define TIME_1_MSEC    ( (u32)10 )                     // one milli-second
+# define TIME_1_SEC     ( (u32)(1000 * TIME_1_MSEC) )   // one second
+# define TIME_MAX       ( (u32)0xffffffff )             // max time value (11.93 hours)
 
-// init the internals of TIME
+
+// init the internals of time
 // and may provide a function to have a better
-// precision when calling TIME_get()
-extern void TIME_init(u32(*adjust)(void));
+// precision when calling nnk_time_get()
+void nnk_time_init(u32(*adjust)(void));
 
-// set the TIME increment.
+// set the time increment.
 // the increment value is depending
-// on the calling period of TIME_incr()
+// on the calling period of nnk_time_incr()
 // incr shall be given in tenth of milli-second
-extern void TIME_set_incr(u32 incr);
+void nnk_time_incr_set(u32 incr);
 
-// get the TIME increment in tenth of milli-second
-extern u32 TIME_get_incr(void);
+// get the time increment in tenth of milli-second
+u32 nnk_time_incr_get(void);
 
-// increment the TIME
+// increment the time
 // the call to this function is on the responsability of the user
-extern void TIME_incr(void);
+void nnk_time_incr(void);
 
-// get current value of TIME in tenth of milli-second
-extern u32 TIME_get(void);
+// get current value of time in tenth of milli-second
+u32 nnk_time_get(void);
 
-// get a more accurate value of TIME in tenth of milli-second
-extern u32 TIME_get_precise(void);
+// get a more accurate value of time in tenth of milli-second
+u32 nnk_time_get_precise(void);
 
 
 #endif	// __TIME_H__

@@ -31,17 +31,17 @@
 
 static struct {
 	// mask of the registered clients
-	slp_t register_mask;
+	u16 register_mask;
 
 	// mask of the current clients requesting sleep
-	slp_t current_mask;
+	u16 current_mask;
 
 	// bit value for the next registering client
 	u8 mask_bit;
 
 	// number of times the sleep mode is reached
 	u16 stat;
-} SLP;
+} slp;
 
 
 //------------------------------
@@ -54,13 +54,13 @@ static struct {
 //
 
 // setup of the SLEEP
-void SLP_init(void)
+void nnk_slp_init(void)
 {
 	// reset the whole structure
-	SLP.register_mask = 0;
-	SLP.current_mask = 0;
-	SLP.mask_bit = 0;
-	SLP.stat = 0;
+	slp.register_mask = 0;
+	slp.current_mask = 0;
+	slp.mask_bit = 0;
+	slp.stat = 0;
 
 	// enable idle sleep mode 
 	MCUCR |= _BV(SE);
@@ -68,18 +68,18 @@ void SLP_init(void)
 
 
 // return the sleep mask for the registering client
-slp_t SLP_register(void)
+u16 nnk_slp_register(void)
 {
-	slp_t mask;
+	u16 mask;
 
 	// compute mask for current registering client
-	mask = 1 << SLP.mask_bit;
+	mask = 1 << slp.mask_bit;
 
 	// update the mask for the registered clients
-	SLP.register_mask |= mask;
+	slp.register_mask |= mask;
 
 	// increment the counter for the next client
-	SLP.mask_bit++;
+	slp.mask_bit++;
 
 	// get to the client its mask
 	return mask;
@@ -87,18 +87,18 @@ slp_t SLP_register(void)
 
 
 // a registered client can request to sleep
-u8 SLP_request(slp_t mask)
+u8 nnk_slp_request(u16 mask)
 {
 	// add client mask to the global mask
-	SLP.current_mask |= mask;
+	slp.current_mask |= mask;
 
 	// if the mask is complete
-	if (SLP.current_mask == SLP.register_mask) {
+	if (slp.current_mask == slp.register_mask) {
 		// sleep
 		__asm__ __volatile__ ("sleep");
 
 		// on wake-up, update stats
-		SLP.stat++;
+		slp.stat++;
 
 		// and return OK
 		return OK;
@@ -110,8 +110,8 @@ u8 SLP_request(slp_t mask)
 
 
 // a registered client can unrequest to sleep
-void SLP_unrequest(slp_t mask)
+void nnk_slp_unrequest(u16 mask)
 {
 	// remove client mask from the global mask
-	SLP.current_mask &= ~mask;
+	slp.current_mask &= ~mask;
 }
