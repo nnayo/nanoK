@@ -53,14 +53,14 @@ void nnk_time_init(u32(*adjust)(void))
 
 
 // set the time increment.
-void nnk_time_set_incr(u32 incr)
+void nnk_time_incr_set(u32 incr)
 {
 	time.incr = incr;
 }
 
 
 // get the time increment.
-u32 nnk_time_get_incr(void)
+u32 nnk_time_incr_get(void)
 {
 	return time.incr;
 }

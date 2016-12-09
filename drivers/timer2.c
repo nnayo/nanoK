@@ -64,7 +64,7 @@ ISR(TIMER2_COMPA_vect)
 // public functions
 //
 
-void TMR2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* misc), void* misc)
+void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* misc), void* misc)
 {
 	// stop counter
 	TCCR2B = TMR2_STOP;
@@ -110,7 +110,7 @@ void TMR2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescale
 	tmr2.misc = misc;
 }
 
-void TMR2_reset(void)
+void nnk_tmr2_reset(void)
 {
 	// stop counter
 	TCCR2B = TMR2_STOP;
@@ -119,19 +119,19 @@ void TMR2_reset(void)
 	TCNT2 = 0x00;
 }
 
-void TMR2_start(void)
+void nnk_tmr2_start(void)
 {
 	// start by applying configuration
 	TCCR2B = tmr2.prescaler;
 }
 
-void TMR2_stop(void)
+void nnk_tmr2_stop(void)
 {
 	// stop by applying 0 prescaler
 	TCCR2B = TMR2_STOP;
 }
 
-u8 TMR2_get_value(void)
+u8 nnk_tmr2_value(void)
 {
 	u8 sreg = SREG;
 	cli();

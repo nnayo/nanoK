@@ -554,14 +554,14 @@ void nnk_twi_init(void(*call_back)(enum nnk_twi_state state, u8 nb_data, void* m
 }
 
 
-void nnk_twi_set_sl_addr(u8 sl_addr)
+void nnk_twi_sl_addr_set(u8 sl_addr)
 {
         TWAR &= _BV(TWGCE);		// reset the TWAR except the general call recognition bit
         TWAR |= sl_addr << 1;		// set the slave address we shall respond to
 }
 
 
-u8 nnk_twi_get_sl_addr(void)
+u8 nnk_twi_sl_addr_get(void)
 {
         return TWAR >> 1;		// get the slave address we're responding to
 }
