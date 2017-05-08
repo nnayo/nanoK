@@ -26,13 +26,13 @@
 #include <avr/interrupt.h>	// ISR()
 
 
-#define TWI_PRESCALER_1		0x00
-#define TWI_PRESCALER_4		0x01
-#define TWI_PRESCALER_16	0x02
-#define TWI_PRESCALER_64	0x03
+#define NNK_TWI_PRESCALER_1		0x00
+#define NNK_TWI_PRESCALER_4		0x01
+#define NNK_TWI_PRESCALER_16	0x02
+#define NNK_TWI_PRESCALER_64	0x03
 
-#define TWI_ACK			1
-#define TWI_NACK		0
+#define NNK_TWI_ACK			1
+#define NNK_TWI_NACK		0
 
 //-------------------
 // private variables
@@ -194,7 +194,7 @@ _TW_MT_SLA_ACK:			// 0x18 : slave addr ack
                 // reset len to prevent data resending
                 twi.ms_buf_len = 0;
 
-                nnk_twi_call_back_call(TWI_MS_TX_END);
+                nnk_twi_call_back_call(NNK_TWI_MS_TX_END);
         }
 
         return;
@@ -205,7 +205,7 @@ _TW_MT_SLA_NACK:		// 0x20 : slave addr nack
         // reset len to prevent data resending
         twi.ms_buf_len = 0;
 
-        nnk_twi_call_back_call(TWI_NO_SL);
+        nnk_twi_call_back_call(NNK_TWI_NO_SL);
 
         return;
 
@@ -223,7 +223,7 @@ _TW_MT_DATA_ACK:		// 0x28 : slave data ack
                 // reset len to prevent data resending
                 twi.ms_buf_len = 0;
 
-                nnk_twi_call_back_call(TWI_MS_TX_END);
+                nnk_twi_call_back_call(NNK_TWI_MS_TX_END);
         }
 
         return;
@@ -235,7 +235,7 @@ _TW_MT_DATA_NACK:		// 0x30 : slave data nack
         twi.ms_buf_len = 0;
 
         // signal it to the application
-        nnk_twi_call_back_call(TWI_MS_TX_END);
+        nnk_twi_call_back_call(NNK_TWI_MS_TX_END);
 
         return;
 
@@ -272,7 +272,7 @@ _TW_MR_SLA_NACK:		// 0x48 : slave addr nack
         twi.ms_buf_len = 0;
 
         // signal it to the application
-        nnk_twi_call_back_call(TWI_NO_SL);
+        nnk_twi_call_back_call(NNK_TWI_NO_SL);
 
         return;
 
@@ -305,7 +305,7 @@ _TW_MR_DATA_NACK:		// 0x58 : slave data nack
         twi.ms_buf_len = 0;
 
         // no more data to read (reception finished)
-        nnk_twi_call_back_call(TWI_MS_RX_END);
+        nnk_twi_call_back_call(NNK_TWI_MS_RX_END);
 
         return;
 
@@ -320,7 +320,7 @@ _TW_ST_ARB_LOST_SLA_ACK:	// 0xb0 : arb lost as master, own slave addr + R
 
         // need support from application
         // a buffer to transmit shall be provided
-        nnk_twi_call_back_call(TWI_SL_TX_BEGIN);
+        nnk_twi_call_back_call(NNK_TWI_SL_TX_BEGIN);
 
         // send data if any
         if ( twi.nb_data < twi.sl_buf_len ) {
@@ -354,7 +354,7 @@ _TW_ST_LAST_DATA:		// 0xc8 : last data transmit, ack received
         // master nack, so tx is finished
 
         // signal it to the application
-        nnk_twi_call_back_call(TWI_SL_TX_END);
+        nnk_twi_call_back_call(NNK_TWI_SL_TX_END);
 
         // if we have data to send or receive as master
         if (twi.ms_buf_len != 0) {
@@ -364,7 +364,7 @@ _TW_ST_LAST_DATA:		// 0xc8 : last data transmit, ack received
         else {
                 // give up bus control, wait for next start
                 TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
-                twi.state = TWI_IDLE;
+                twi.state = NNK_TWI_IDLE;
         }
 
         return;
@@ -380,7 +380,7 @@ _TW_SR_ARB_LOST_SLA_ACK:	// 0x68 : arb lost, own slave addr +W
 
         // need support from application
         // a buffer to received the data shall be provided
-        nnk_twi_call_back_call(TWI_SL_RX_BEGIN);
+        nnk_twi_call_back_call(NNK_TWI_SL_RX_BEGIN);
 
         // if more data to receive
         if ( (twi.nb_data + 1) < twi.sl_buf_len )
@@ -400,7 +400,7 @@ _TW_SR_ARB_LOST_GCALL_ACK:	// 0x78 : arb lost + idem above
 
         // need support from application
         // a buffer to received the data shall be provided
-        nnk_twi_call_back_call(TWI_GENCALL_BEGIN);
+        nnk_twi_call_back_call(NNK_TWI_GENCALL_BEGIN);
 
         // if more data to receive
         if ( (twi.nb_data + 1) < twi.sl_buf_len )
@@ -435,7 +435,7 @@ _TW_SR_DATA_NACK:		// 0x88 : data received, nack sent
         twi.nb_data++;
 
         // signal end of rx
-        nnk_twi_call_back_call(TWI_SL_RX_END);
+        nnk_twi_call_back_call(NNK_TWI_SL_RX_END);
 
         return;
 
@@ -463,17 +463,17 @@ _TW_SR_GCALL_DATA_NACK:		// 0x98 : in gen call, data received, nack sent
         twi.nb_data++;
 
         // signal end of rx
-        nnk_twi_call_back_call(TWI_GENCALL_END);
+        nnk_twi_call_back_call(NNK_TWI_GENCALL_END);
 
         return;
 
 _TW_SR_STOP:			// 0xa0 : stop or restart received
         // the previous transfer as slace receiver (general call or not)
         // is completely finished
-        if (twi.state == TWI_SL_RX_BEGIN)
-                nnk_twi_call_back_call(TWI_SL_RX_END);
+        if (twi.state == NNK_TWI_SL_RX_BEGIN)
+                nnk_twi_call_back_call(NNK_TWI_SL_RX_END);
         else
-                nnk_twi_call_back_call(TWI_GENCALL_END);
+                nnk_twi_call_back_call(NNK_TWI_GENCALL_END);
 
         // but if we have data to send or read as master
         // try to generate a restart
@@ -490,7 +490,7 @@ _TW_NO_INFO:			// 0xf8 : no relevant information
         TWCR = _BV(TWEA) | _BV(TWINT) | _BV(TWEN)  | _BV(TWIE);
 
         // signal idle mode
-        nnk_twi_call_back_call(TWI_IDLE);
+        nnk_twi_call_back_call(NNK_TWI_IDLE);
 
         return;
 
@@ -499,14 +499,14 @@ _TW_BUS_ERROR:			// 0x00 : internal protocol violation
 
         // recover releasing the bus
         //TWCR = _BV(TWEA) | _BV(TWINT) | _BV(TWEN) | _BV(TWSTO);
-        nnk_twi_call_back_call(TWI_ERROR);
+        nnk_twi_call_back_call(NNK_TWI_ERROR);
 
         return;
 
 other:				// unknown status
         // so, what happens?????
 
-        nnk_twi_call_back_call(TWI_ERROR);
+        nnk_twi_call_back_call(NNK_TWI_ERROR);
 
         return;
 }
@@ -528,13 +528,13 @@ void nnk_twi_init(void(*call_back)(enum nnk_twi_state state, u8 nb_data, void* m
 
         // bit rate 100k
         // prescaler = 1
-        TWSR = TWI_PRESCALER_1;
+        TWSR = NNK_TWI_PRESCALER_1;
 
         // baud rate = 32
         TWBR = 32;
 
         // reset engine state to IDLE
-        twi.state = TWI_IDLE;
+        twi.state = NNK_TWI_IDLE;
 
         // set call_back pointer
         if ( call_back != NULL )
@@ -581,7 +581,7 @@ void nnk_twi_gen_call(u8 gen_call)
 
 void nnk_twi_stop(void)
 {
-        if (twi.state == TWI_SL_RX_END || twi.state == TWI_GENCALL_END) {
+        if (twi.state == NNK_TWI_SL_RX_END || twi.state == NNK_TWI_GENCALL_END) {
                 TWCR = _BV(TWINT) | _BV(TWEA) | _BV(TWEN) | _BV(TWIE);
         }
 
@@ -595,14 +595,14 @@ void nnk_twi_stop(void)
         }
 
         // reset engine state to IDLE
-        twi.state = TWI_IDLE;
+        twi.state = NNK_TWI_IDLE;
 }
 
 
 u8 nnk_twi_ms_tx(u8 adr, u8 len, u8* data)
 {
         // check if TWI is idle
-        if ( (twi.state != TWI_IDLE) && (twi.state != TWI_ERROR) )
+        if ( (twi.state != NNK_TWI_IDLE) && (twi.state != NNK_TWI_ERROR) )
                 return KO;
 
         // check if bus is stopped
@@ -610,7 +610,7 @@ u8 nnk_twi_ms_tx(u8 adr, u8 len, u8* data)
                 return KO;
 
         // reset TWI state
-        twi.state = TWI_MS_TX_BEGIN;
+        twi.state = NNK_TWI_MS_TX_BEGIN;
 
         // set ms_buf
         twi.ms_buf = data;
@@ -629,7 +629,7 @@ u8 nnk_twi_ms_tx(u8 adr, u8 len, u8* data)
 u8 nnk_twi_ms_rx(u8 adr, u8 len, u8* data)
 {
         // check if TWI is idle
-        if ( (twi.state != TWI_IDLE) && (twi.state != TWI_ERROR) )
+        if ( (twi.state != NNK_TWI_IDLE) && (twi.state != NNK_TWI_ERROR) )
                 return KO;
 
         // check if bus is stopped
@@ -637,7 +637,7 @@ u8 nnk_twi_ms_rx(u8 adr, u8 len, u8* data)
                 return KO;
 
         // reset TWI state
-        twi.state = TWI_MS_RX_BEGIN;
+        twi.state = NNK_TWI_MS_RX_BEGIN;
 
         // set rx_buf
         twi.ms_buf = data;
@@ -656,7 +656,7 @@ u8 nnk_twi_ms_rx(u8 adr, u8 len, u8* data)
 u8 nnk_twi_sl_tx(u8 len, u8* data)
 {
         // check if TWI is slave transmitting
-        if (twi.state != TWI_SL_TX_BEGIN)
+        if (twi.state != NNK_TWI_SL_TX_BEGIN)
                 return KO;
 
         // set sl_buf
@@ -674,7 +674,7 @@ u8 nnk_twi_sl_rx(u8 len, u8* data)
 {
         // check if TWI is slave receiving
         // general call is just a special case of slave receiving
-        if ( (twi.state != TWI_SL_RX_BEGIN) && (twi.state != TWI_GENCALL_BEGIN) )
+        if ( (twi.state != NNK_TWI_SL_RX_BEGIN) && (twi.state != NNK_TWI_GENCALL_BEGIN) )
                 return KO;
 
         // set sl_buf

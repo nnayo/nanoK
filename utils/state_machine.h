@@ -1,5 +1,5 @@
-#ifndef __STATE_MACHINE_H__
-# define __STATE_MACHINE_H__
+#ifndef __NNK_STATE_MACHINE_H__
+# define __NNK_STATE_MACHINE_H__
 
 #include "type_def.h"
 
@@ -37,4 +37,4 @@ void nnk_stm_run(struct nnk_stm* stm);
 // post an event to the state machine
 u8 nnk_stm_event(struct nnk_stm* stm, const u8 ev);
 
-#endif	// __STATE_MACHINE_H__
+#endif	// __NNK_STATE_MACHINE_H__

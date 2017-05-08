@@ -31,7 +31,7 @@
 
 static struct {
 	u8 prescaler;
-	void (*call_back)(void* misc);
+	void (*call_back)(void* const misc);
 	void* misc;
 } tmr2;
 
@@ -46,7 +46,7 @@ ISR(TIMER2_OVF_vect)
 		(tmr2.call_back)(tmr2.misc);
 	else
 		// stop by applying 0 prescaler
-		TCCR2B = TMR2_STOP;
+		TCCR2B = NNK_TMR2_STOP;
 }
 
 ISR(TIMER2_COMPA_vect)
@@ -56,7 +56,7 @@ ISR(TIMER2_COMPA_vect)
 		(tmr2.call_back)(tmr2.misc);
 	else
 		// stop by applying 0 prescaler
-		TCCR2B = TMR2_STOP;
+		TCCR2B = NNK_TMR2_STOP;
 }
 
 
@@ -64,10 +64,10 @@ ISR(TIMER2_COMPA_vect)
 // public functions
 //
 
-void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* misc), void* misc)
+void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* const misc), void* const misc)
 {
 	// stop counter
-	TCCR2B = TMR2_STOP;
+	TCCR2B = NNK_TMR2_STOP;
 
 	// save configuration
 	tmr2.prescaler = prescaler;
@@ -89,17 +89,17 @@ void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler pres
 	// set interrupt mode
 	switch (int_mode) {
 		default:
-		case TMR2_WITHOUT_INTERRUPT:
+		case NNK_TMR2_WITHOUT_INTERRUPT:
 			TIMSK2 &= ~_BV(OCIE2A);
 			TIMSK2 &= ~_BV(TOIE2);
 			break;
 
-		case TMR2_WITH_OVERFLOW_INT:
+		case NNK_TMR2_WITH_OVERFLOW_INT:
 			TIMSK2 &= ~_BV(OCIE2A);
 			TIMSK2 |= _BV(TOIE2);
 			break;
 
-		case TMR2_WITH_COMPARE_INT:
+		case NNK_TMR2_WITH_COMPARE_INT:
 			TIMSK2 &= ~_BV(TOIE2);
 			TIMSK2 |= _BV(OCIE2A);
 			break;
@@ -113,7 +113,7 @@ void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler pres
 void nnk_tmr2_reset(void)
 {
 	// stop counter
-	TCCR2B = TMR2_STOP;
+	TCCR2B = NNK_TMR2_STOP;
 
 	// reset counter
 	TCNT2 = 0x00;
@@ -128,7 +128,7 @@ void nnk_tmr2_start(void)
 void nnk_tmr2_stop(void)
 {
 	// stop by applying 0 prescaler
-	TCCR2B = TMR2_STOP;
+	TCCR2B = NNK_TMR2_STOP;
 }
 
 u8 nnk_tmr2_value(void)

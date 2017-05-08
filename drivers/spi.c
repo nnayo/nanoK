@@ -14,13 +14,13 @@
 //
 
 static struct {
-	spi_behaviour_t behaviour:2;
+	enum nnk_spi_behaviour behaviour:2;
 
 	volatile u8 fini:1;	// flag to be used in blocking mode
 	u8 error:1;			// transfert on error
 
 	// current transfert handling
-	spi_state_t state:4;
+	enum nnk_spi_state state:4;
 	u8 index;
 
 	// reception handling
@@ -28,11 +28,11 @@ static struct {
 	u8 rx_len;
 
 	// transmission handling
-	u8* tx_buf;
+	const u8* tx_buf;
 	u8 tx_len;
 
 	// call-back
-	void (*call_back)(spi_state_t st, void* misc);
+	void (*call_back)(enum nnk_spi_state st, void* misc);
 	void* misc;
 
 #ifdef STATS
@@ -40,7 +40,7 @@ static struct {
 	u16 false_triggers;
 	u16 overflows;
 #endif
-} SPI;
+} spi;
 
 
 //-------------------------------------------
@@ -50,26 +50,26 @@ static struct {
 ISR(SPI_STC_vect)
 {
 	// handling depends on set behaviour 
-	switch ( SPI.behaviour ) {
-	case SPI_MASTER:
+	switch ( spi.behaviour ) {
+	case NNK_SPI_MASTER:
 		// if the interrupt is not awaited
-		if ( SPI.state != SPI_RUNNING ) {
+		if ( spi.state != NNK_SPI_RUNNING ) {
 #ifdef STATS
 			// update stats
-			SPI.false_triggers++;
+			spi.false_triggers++;
 #endif
 
 			// signal error
-			SPI.call_back(SPI_ERROR, SPI.misc);
-			SPI.state = SPI_IDLE;
+			spi.call_back(NNK_SPI_ERROR, spi.misc);
+			spi.state = NNK_SPI_IDLE;
 
 			return;
 		}
 
 		// if there are still data to receive
-		if ( SPI.index < SPI.rx_len ) {
+		if ( spi.index < spi.rx_len ) {
 			// retrieve it from rx register
-			SPI.rx_buf[SPI.index] = SPDR;
+			spi.rx_buf[spi.index] = SPDR;
 		}
         else {
             // just consume the received data
@@ -77,24 +77,24 @@ ISR(SPI_STC_vect)
         }
 
 		// update index
-		SPI.index++;
+		spi.index++;
 
 		// when emitting buffer is empty and receiving buffer is full 
-		if ( (SPI.index >= SPI.tx_len) && (SPI.index >= SPI.rx_len) ) {
+		if ( (spi.index >= spi.tx_len) && (spi.index >= spi.rx_len) ) {
 			// signal end of transmission
-			SPI.call_back(SPI_MASTER_END, SPI.misc);
+			spi.call_back(NNK_SPI_MASTER_END, spi.misc);
 			PORTB |= _BV(PB0);	// set /SS high to block slave
 
 			// reset internals
-			SPI.state = SPI_IDLE;
-			SPI.index = 0;
+			spi.state = NNK_SPI_IDLE;
+			spi.index = 0;
 			break;
 		}
 
 		// if there are still data to send
-		if ( SPI.index < SPI.tx_len ) {
+		if ( spi.index < spi.tx_len ) {
 			// update tx register
-			SPDR = SPI.tx_buf[SPI.index];
+			SPDR = spi.tx_buf[spi.index];
 		}
 		else {
 			// no more data to send but apparently still some to receive
@@ -103,68 +103,68 @@ ISR(SPI_STC_vect)
 		}
 		break;
 
-	case SPI_SLAVE:
+	case NNK_SPI_SLAVE:
 		// if the interrupt is not awaited
-		if ( (SPI.state != SPI_IDLE) || (SPI.state != SPI_RUNNING) ) {
+		if ( (spi.state != NNK_SPI_IDLE) || (spi.state != NNK_SPI_RUNNING) ) {
 #ifdef STATS
 			// update stats
-			SPI.false_triggers++;
+			spi.false_triggers++;
 #endif
 
 			// signal error
-			SPI.call_back(SPI_ERROR, SPI.misc);
-			SPI.state = SPI_IDLE;
+			spi.call_back(NNK_SPI_ERROR, spi.misc);
+			spi.state = NNK_SPI_IDLE;
 
 			return;
 		}
 
 		// on start of slave reception
-		if ( SPI.index == 0 ) {
+		if ( spi.index == 0 ) {
 			// signal it to have the data buffer set
-			SPI.call_back(SPI_SLAVE_BEGIN, SPI.misc);
+			spi.call_back(NNK_SPI_SLAVE_BEGIN, spi.misc);
 
 			// start reception process
-			SPI.state = SPI_RUNNING;
+			spi.state = NNK_SPI_RUNNING;
 		}
 
 		// if there is still empty place for the data to receive
-		if (  SPI.index < SPI.rx_len ) {
+		if (  spi.index < spi.rx_len ) {
 			// retrieve it from rx register
-			SPI.rx_buf[SPI.index] = SPDR;
+			spi.rx_buf[spi.index] = SPDR;
 
 			// provide stub data in emission
 			SPDR = 0xff;
 		}
 
 		// update index
-		SPI.index++;
+		spi.index++;
 
 		// if received buffer is full
-		if ( SPI.index >= SPI.rx_len ) {
+		if ( spi.index >= spi.rx_len ) {
 			// signal end of transmission
-			SPI.call_back(SPI_SLAVE_END, SPI.misc);
-			SPI.state = SPI_IDLE;
+			spi.call_back(NNK_SPI_SLAVE_END, spi.misc);
+			spi.state = NNK_SPI_IDLE;
 		}
 		break;
 
-	case SPI_RESET:
+	case NNK_SPI_RESET:
 #ifdef STATS
-		SPI.false_triggers++;
+		spi.false_triggers++;
 #endif
-		SPI.call_back(SPI_ERROR, SPI.misc);
-		SPI.state = SPI_IDLE;
+		spi.call_back(NNK_SPI_ERROR, spi.misc);
+		spi.state = NNK_SPI_IDLE;
 		break;
 	}
 }
 
 
 // default call-back only useful for blocking mode
-static void SPI_default_call_back(spi_state_t st, void* misc)
+static void nnk_spi_default_call_back(enum nnk_spi_state st, void* misc)
 {
 	(void)misc;
 
-	SPI.error = ( st == SPI_ERROR ) ? 1 : 0;
-	SPI.fini = OK;
+	spi.error = ( st == NNK_SPI_ERROR ) ? 1 : 0;
+	spi.fini = OK;
 }
 
 
@@ -172,13 +172,13 @@ static void SPI_default_call_back(spi_state_t st, void* misc)
 // public functions
 //
 
-void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_order, spi_clock_div_t clock_div)
+void nnk_spi_init(enum nnk_spi_behaviour behaviour, enum nnk_spi_mode mode, enum nnk_spi_data_order data_order, enum nnk_spi_clock_div clock_div)
 {
 	// default mode
-	SPI.behaviour = SPI_RESET;
+	spi.behaviour = NNK_SPI_RESET;
 
 	switch ( behaviour ) {
-	case SPI_MASTER:
+	case NNK_SPI_MASTER:
 		SPCR = _BV(MSTR);
 		DDRB |= _BV(PB7);	// SCK as output
 		DDRB |= _BV(PB5);	// MOSI as output
@@ -186,7 +186,7 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 		PORTB |= _BV(PB0);	// /SS is high to block slave
 		break;
 
-	case SPI_SLAVE:
+	case NNK_SPI_SLAVE:
 		SPCR = 0;
 		DDRB &= ~_BV(PB2);	// /SS as input
 		DDRB &= ~_BV(PB6);	// MISO as input
@@ -200,18 +200,18 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 	}
 
 	switch ( mode ) {
-	case SPI_ZERO:	// CPOL = 0 and CPHA = 0
+	case NNK_SPI_ZERO:	// CPOL = 0 and CPHA = 0
 		break;
 
-	case SPI_ONE:	// CPOL = 0 and CPHA = 1
+	case NNK_SPI_ONE:	// CPOL = 0 and CPHA = 1
 		SPCR |= _BV(CPHA);
 		break;
 
-	case SPI_TWO:	// CPOL = 1 and CPHA = 0
+	case NNK_SPI_TWO:	// CPOL = 1 and CPHA = 0
 		SPCR |= _BV(CPOL);
 		break;
 
-	case SPI_THREE:	// CPOL = 1 and CPHA = 1
+	case NNK_SPI_THREE:	// CPOL = 1 and CPHA = 1
 		SPCR |= _BV(CPOL);
 		SPCR |= _BV(CPHA);
 		break;
@@ -222,11 +222,11 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 	}
 
 	switch ( data_order ) {
-	case SPI_LSB:
+	case NNK_SPI_LSB:
 		SPCR |= _BV(DORD);
 		break;
 
-	case SPI_MSB:
+	case NNK_SPI_MSB:
 		break;
 
 	default:
@@ -234,19 +234,19 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 		break;
 	}
 
-	SPI_set_clock(clock_div);
+	nnk_spi_set_clock(clock_div);
 
 	// configuration passed : set the correct behaviour
-	SPI.behaviour = behaviour;
+	spi.behaviour = behaviour;
 
 	// reset internals
-	SPI.state = SPI_IDLE;
-	SPI.index = 0;
-	SPI.call_back = SPI_default_call_back;
-	SPI.misc = NULL;
+	spi.state = NNK_SPI_IDLE;
+	spi.index = 0;
+	spi.call_back = nnk_spi_default_call_back;
+	spi.misc = NULL;
 #ifdef STATS
-	SPI.false_triggers = 0;
-	SPI.overflows = 0;
+	spi.false_triggers = 0;
+	spi.overflows = 0;
 #endif
 
 	// finally enable the SPI and its interrupt
@@ -255,38 +255,38 @@ void SPI_init(spi_behaviour_t behaviour, spi_mode_t mode, spi_data_order_t data_
 }
 
 // set the SPI clock speed
-void SPI_set_clock(spi_clock_div_t clock_div)
+void nnk_spi_set_clock(enum nnk_spi_clock_div clock_div)
 {
     SPSR &= (~_BV(SPI2X));
     SPCR &= (~_BV(SPR0)) & (~_BV(SPR1));
     
     switch ( clock_div ) {
-    case SPI_DIV_2:
+    case NNK_SPI_DIV_2:
         SPSR |= _BV(SPI2X);
         break;
         
-    case SPI_DIV_4:
+    case NNK_SPI_DIV_4:
         break;
         
-    case SPI_DIV_8:
+    case NNK_SPI_DIV_8:
         SPSR |= _BV(SPI2X);
         SPCR |= _BV(SPR0);
         break;
         
-    case SPI_DIV_16:
+    case NNK_SPI_DIV_16:
         SPCR |= _BV(SPR0);
         break;
         
-    case SPI_DIV_32:
+    case NNK_SPI_DIV_32:
         SPSR |= _BV(SPI2X);
         SPCR |= _BV(SPR1);
         break;
         
-    case SPI_DIV_64:
+    case NNK_SPI_DIV_64:
         SPCR |= _BV(SPR1);
         break;
         
-    case SPI_DIV_128:
+    case NNK_SPI_DIV_128:
         SPCR |= _BV(SPR0);
         SPCR |= _BV(SPR1);
         break;
@@ -298,34 +298,34 @@ void SPI_set_clock(spi_clock_div_t clock_div)
 }
 
 // call-back init
-void SPI_call_back_set(void (*call_back)(spi_state_t st, void* misc), void* misc)
+void nnk_spi_call_back_set(void (*call_back)(enum nnk_spi_state st, void* misc), void* misc)
 {
-	SPI.call_back = call_back;
-	SPI.misc = misc;
+	spi.call_back = call_back;
+	spi.misc = misc;
 }
 
 
 // handle a transmission as master
-u8 SPI_master(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len)
+u8 nnk_spi_master(const u8* const tx_buf, u8 tx_len, u8* const rx_buf, u8 rx_len)
 {
 	// check initial conditions
-	if ( (SPI.state != SPI_IDLE) || (SPI.behaviour != SPI_MASTER) ) {
+	if ( (spi.state != NNK_SPI_IDLE) || (spi.behaviour != NNK_SPI_MASTER) ) {
 		return KO;
 	}
 
 	// save contexts
-	SPI.tx_buf = tx_buf;
-	SPI.tx_len = tx_len;
-	SPI.rx_buf = rx_buf;
-	SPI.rx_len = rx_len;
+	spi.tx_buf = tx_buf;
+	spi.tx_len = tx_len;
+	spi.rx_buf = rx_buf;
+	spi.rx_len = rx_len;
 
 	// set the flag to detect end of transmission
-	SPI.fini = KO;
+	spi.fini = KO;
 
 	// start transmission
-	SPI.state = SPI_RUNNING;
+	spi.state = NNK_SPI_RUNNING;
 	PORTB &= ~_BV(PB0);	// set /SS low to select slave
-	SPDR = SPI.tx_buf[0];
+	SPDR = spi.tx_buf[0];
 
 	// now the ISR will do the rest of the job
 	return OK;
@@ -333,35 +333,35 @@ u8 SPI_master(u8* tx_buf, u8 tx_len, u8* rx_buf, u8 rx_len)
 
 
 // when using the default call-back, call this function to know if the transfert is done
-u8 SPI_is_fini(void)
+u8 nnk_spi_is_fini(void)
 {
-	return SPI.fini;
+	return spi.fini;
 }
 
 
 // when using the default call-back, call this function to know if the transfert is OK
-u8 SPI_is_ok(void)
+u8 nnk_spi_is_ok(void)
 {
-	return SPI.error;
+	return spi.error;
 }
 
 
 // handle a transmission as slave
-u8 SPI_slave(u8* rx_buf, u8 rx_len)
+u8 nnk_spi_slave(u8* rx_buf, u8 rx_len)
 {
 	// check initial conditions
-	if ( (SPI.state != SPI_IDLE) || (SPI.behaviour != SPI_SLAVE) ) {
+	if ( (spi.state != NNK_SPI_IDLE) || (spi.behaviour != NNK_SPI_SLAVE) ) {
 		return KO;
 	}
 
 	// save contexts
-	SPI.tx_buf = NULL;
-	SPI.tx_len = 0;
-	SPI.rx_buf = rx_buf;
-	SPI.rx_len = rx_len;
+	spi.tx_buf = NULL;
+	spi.tx_len = 0;
+	spi.rx_buf = rx_buf;
+	spi.rx_len = rx_len;
 
 	// start transmission
-	SPI.state = SPI_RUNNING;
+	spi.state = NNK_SPI_RUNNING;
 
 	// now the ISR will do the rest of the job
 	return OK;

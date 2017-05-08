@@ -19,29 +19,29 @@
 //  you can write to me at <yann_gouy@yahoo.fr>
 //
 
-#ifndef __TWI_H__
-# define __TWI_H__
+#ifndef __NNK_TWI_H__
+# define __NNK_TWI_H__
 
 # include "type_def.h"
 
-# define TWI_BROADCAST_ADDR	0x00
-# define TWI_FIRST_ADDR		0x01
-# define TWI_LAST_ADDR		0x7f
+# define NNK_TWI_BROADCAST_ADDR	0x00
+# define NNK_TWI_FIRST_ADDR		0x01
+# define NNK_TWI_LAST_ADDR		0x7f
 
 enum nnk_twi_state {
-	TWI_IDLE,		// just idle
-	TWI_NO_SL,		// no slave at the given address
-	TWI_MS_RX_BEGIN,	// master mode, reception from slave beginning
-	TWI_MS_RX_END,		// master mode, reception from slave finished
-	TWI_MS_TX_BEGIN,	// master mode, transmission to slave beginning
-	TWI_MS_TX_END,		// master mode, transmission to slave finished
-	TWI_SL_RX_BEGIN,	// slave mode, reception from master beginning
-	TWI_SL_RX_END,		// slave mode, reception from master finished
-	TWI_SL_TX_BEGIN,	// slave mode, transmission to master beginning
-	TWI_SL_TX_END,		// slave mode, transmission to master finished
-	TWI_GENCALL_BEGIN,	// general call, reception from master beginning
-	TWI_GENCALL_END,	// general call, reception from master finished
-	TWI_ERROR		// error in the protocol or in the state machine
+	NNK_TWI_IDLE,		// just idle
+	NNK_TWI_NO_SL,		// no slave at the given address
+	NNK_TWI_MS_RX_BEGIN,	// master mode, reception from slave beginning
+	NNK_TWI_MS_RX_END,		// master mode, reception from slave finished
+	NNK_TWI_MS_TX_BEGIN,	// master mode, transmission to slave beginning
+	NNK_TWI_MS_TX_END,		// master mode, transmission to slave finished
+	NNK_TWI_SL_RX_BEGIN,	// slave mode, reception from master beginning
+	NNK_TWI_SL_RX_END,		// slave mode, reception from master finished
+	NNK_TWI_SL_TX_BEGIN,	// slave mode, transmission to master beginning
+	NNK_TWI_SL_TX_END,		// slave mode, transmission to master finished
+	NNK_TWI_GENCALL_BEGIN,	// general call, reception from master beginning
+	NNK_TWI_GENCALL_END,	// general call, reception from master finished
+	NNK_TWI_ERROR		// error in the protocol or in the state machine
 };	// automata states
 
 // init the TWI component
@@ -136,61 +136,61 @@ extern u8 nnk_twi_sl_rx(u8 len, u8* data);
 //
 // here are descripted all the possible cases depending on the nnk_twi_state
 //
-// - TWI_IDLE:
+// - NNK_TWI_IDLE:
 // 	will never happened, it is just an internal state
 // 	-> nothing to do then!!!
 //
-// - TWI_NO_SL:
+// - NNK_TWI_NO_SL:
 // 	no slave at given address or no slave able to answer general call
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> retry sending data:	nnk_twi_ms_tx()
 // 	-> retry reading data:	nnk_twi_ms_rx()
 //
-// - TWI_MS_RX_END:
+// - NNK_TWI_MS_RX_END:
 // 	reception as master finished
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> try sending data:	nnk_twi_ms_tx()
 // 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - TWI_MS_TX_END:
+// - NNK_TWI_MS_TX_END:
 // 	transmission as master finished
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> try sending data:	nnk_twi_ms_tx()
 // 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - TWI_SL_RX_BEGIN:
+// - NNK_TWI_SL_RX_BEGIN:
 // 	reception as slave beginning (may be due to an arbitration lost)
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - TWI_SL_RX_END:
+// - NNK_TWI_SL_RX_END:
 // 	reception as slave finished
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> try sending data:	nnk_twi_ms_tx()
 // 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - TWI_SL_TX_BEGIN:
+// - NNK_TWI_SL_TX_BEGIN:
 // 	transmission as slave beginning (may be due to an arbitration lost)
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - TWI_SL_TX_END:
+// - NNK_TWI_SL_TX_END:
 // 	transmission as slave finished
 // 	-> try sending data:	nnk_twi_ms_tx()
 // 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - TWI_GENCALL_BEGIN:
+// - NNK_TWI_GENCALL_BEGIN:
 // 	reception as slave (in the context of a general call) beginning (may be due to an arbitration lost)
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> accept reading data:	nnk_twi_sl_rx()
 //
-// - TWI_GENCALL_END:
+// - NNK_TWI_GENCALL_END:
 // 	reception as slave (in the context of a general call) finished
 // 	-> stop communication:	nnk_twi_stop()
 // 	-> try sending data:	nnk_twi_ms_tx()
 // 	-> try reading data:	nnk_twi_ms_rx()
 //
-// - TWI_ERROR:
+// - NNK_TWI_ERROR:
 // 	error in protocol at hardware level (probably)
 // 	nothing to do except trying to stop the current transfert
 // 	-> stop communication:	nnk_twi_stop()

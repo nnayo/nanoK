@@ -27,18 +27,18 @@
 // interrupt mode
 //
 enum nnk_tmr2_int_mode {
-	TMR2_WITHOUT_INTERRUPT,
-	TMR2_WITH_OVERFLOW_INT,
-	TMR2_WITH_COMPARE_INT,
+	NNK_TMR2_WITHOUT_INTERRUPT,
+	NNK_TMR2_WITH_OVERFLOW_INT,
+	NNK_TMR2_WITH_COMPARE_INT,
 };
 
 // waveform generation mode
 //
 enum nnk_tmr2_wgm {
-	TMR2_WGM_NORMAL,	// normal overflow on 0xff
-	TMR2_WGM_PWM,		// pwm
-	TMR2_WGM_CTC,		// clear timer on compare, reset on compare value
-	TMR2_WGM_FASTPWM,	// fast pwm
+	NNK_TMR2_WGM_NORMAL,   // normal overflow on 0xff
+	NNK_TMR2_WGM_PWM,      // pwm
+	NNK_TMR2_WGM_CTC,      // clear timer on compare, reset on compare value
+	NNK_TMR2_WGM_FASTPWM,  // fast pwm
 };
 
 // prescaler values
@@ -56,14 +56,14 @@ enum nnk_tmr2_wgm {
 // (*) 125 ns <=> 8MHz
 
 enum nnk_tmr2_prescaler {
-	TMR2_STOP,
-	TMR2_PRESCALER_1,
-	TMR2_PRESCALER_8,
-	TMR2_PRESCALER_32,
-	TMR2_PRESCALER_64,
-	TMR2_PRESCALER_128,
-	TMR2_PRESCALER_256,
-	TMR2_PRESCALER_1024
+	NNK_TMR2_STOP,
+	NNK_TMR2_PRESCALER_1,
+	NNK_TMR2_PRESCALER_8,
+	NNK_TMR2_PRESCALER_32,
+	NNK_TMR2_PRESCALER_64,
+	NNK_TMR2_PRESCALER_128,
+	NNK_TMR2_PRESCALER_256,
+	NNK_TMR2_PRESCALER_1024
 };
 
 // init the timer:
@@ -73,7 +73,7 @@ enum nnk_tmr2_prescaler {
 // - and to call a function if provided on oveflow
 //
 // only OCRA is used right now
-void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* misc), void* misc);
+void nnk_tmr2_init(enum nnk_tmr2_int_mode int_mode, enum nnk_tmr2_prescaler prescaler, enum nnk_tmr2_wgm wgm, u8 compare, void (*call_back)(void* const misc), void* const misc);
 
 // reset the timer to 0
 void nnk_tmr2_reset(void);
